@@ -1,0 +1,22 @@
+{
+  "version": 5,
+  "configurePresets": [
+    {"name":"debug","generator":"Ninja","binaryDir":"${sourceDir}/build/debug",
+     "cacheVariables":{"CMAKE_BUILD_TYPE":"Debug","GEMX_SANITIZERS":"ON","BUILD_TESTING":"ON"}},
+    {"name":"release","inherits":"debug","binaryDir":"${sourceDir}/build/release",
+     "cacheVariables":{"CMAKE_BUILD_TYPE":"Release","GEMX_SANITIZERS":"OFF"}},
+    {"name":"vulkan","inherits":"release","binaryDir":"${sourceDir}/build/vulkan",
+     "cacheVariables":{"GEMX_VULKAN":"ON"}}
+  ],
+  "buildPresets": [
+    {"name":"debug","configurePreset":"debug","jobs":8},
+    {"name":"release","configurePreset":"release","jobs":8},
+    {"name":"vulkan","configurePreset":"vulkan","jobs":8}
+  ],
+  "testPresets": [
+    {"name":"debug","configurePreset":"debug","output":{"outputOnFailure":true}},
+    {"name":"release","configurePreset":"release","output":{"outputOnFailure":true}},
+    {"name":"vulkan","configurePreset":"vulkan","output":{"outputOnFailure":true}}
+  ]
+}
+

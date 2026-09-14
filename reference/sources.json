@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "https://github.com/NVlabs/GEM-X",
+    "revision": "32992550dba114c62243fb55e361311972dce8f9",
+    "license": "Apache-2.0",
+    "sam3d_body_revision": "b5c765a0d89d789985e186d396315e7590887b94",
+    "soma_revision": "e0f8ff0ecfa3edbbb6058b1e0f08822ee2f84ee5",
+    "motion_stats_sha256": "dafe4ef6a62e824b0b325f54e42d508015785509bc478ef76e4208ae1f95ba7c"
+  },
+  "models": {
+    "repository": "https://huggingface.co/nvidia/GEM-X",
+    "revision": "5ccf5ca3746c3620aa4016114f069a5f6ae399cd",
+    "gem_soma.ckpt": {"bytes": 541758499, "sha256": "4c1f85ca8c1e11e6588aead49fbc024bf660708def670043e0b537c101ee298e"},
+    "onnx/gem_denoiser.onnx": {"bytes": 1508810, "sha256": "20aab83c01bbd909a258ad0fa465458eda382c63dc80d56952b2ec952d6e192c"},
+    "onnx/gem_denoiser.onnx.data": {"bytes": 199114752, "sha256": "720c2400281b730574bf2a446c33ecd77bf494ac8161b081b09bb122b9fad2f8"},
+    "onnx/vitpose.onnx": {"bytes": 4279801, "sha256": "0982dbf4f1e8a48446a6fe35329711522b60210cce2a7499ca6ab93458c87f34"},
+    "onnx/vitpose.onnx.data": {"bytes": 3389390848, "sha256": "b20ba3077ba2341d76c16dde3e58d3b37c66c3b0ec8346901a8bac14319e20fe"},
+    "scale_comps.pth": {"bytes": 8816, "sha256": "4c4861384b176fbe3d3bd7480e87ff8161f19553bf6ec1b718bc9b6bbb559cd6"},
+    "scale_mean.pth": {"bytes": 1451, "sha256": "f696a0793217f27fcf23fa1fd63e8a34aa74ef64580078698fb9ea7322ce2891"},
+    "SOMA_neutral.npz": {"repository": "https://huggingface.co/nvidia/SOMA-X", "revision": "466879a", "bytes": 27488638, "sha256": "515f7d5bb74be4e370e9adf5e779760ec3581556374c0b33212a32d13ab3b53f"}
+  }
+}

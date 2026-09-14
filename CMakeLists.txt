@@ -1,0 +1,95 @@
+cmake_minimum_required(VERSION 3.24)
+project(gemx VERSION 0.0.1 LANGUAGES C CXX)
+include(CTest)
+include(GNUInstallDirs)
+option(GEMX_SANITIZERS "Enable ASan and UBSan" ON)
+option(GEMX_VULKAN "Build the GGML Vulkan backend" OFF)
+option(GEMX_ENABLE_GGML "Build learned GEM-X inference" ON)
+
+if(GEMX_ENABLE_GGML)
+  if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ggml/CMakeLists.txt")
+    message(FATAL_ERROR "GGML submodule missing: run git submodule update --init")
+  endif()
+  set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared dependencies" FORCE)
+  set(GGML_BACKEND_DL ON CACHE BOOL "Load explicit GGML backends" FORCE)
+  set(GGML_NATIVE OFF CACHE BOOL "Portable CPU backend variants" FORCE)
+  set(GGML_CPU_ALL_VARIANTS ON CACHE BOOL "Runtime-selected portable CPU backends" FORCE)
+  set(GGML_CPU ON CACHE BOOL "Build CPU backend" FORCE)
+  set(GGML_VULKAN ${GEMX_VULKAN} CACHE BOOL "Build Vulkan backend" FORCE)
+  set(GGML_BUILD_TESTS OFF CACHE BOOL "GGML tests" FORCE)
+  set(GGML_BUILD_EXAMPLES OFF CACHE BOOL "GGML examples" FORCE)
+  add_subdirectory(ggml)
+endif()
+
+add_library(gemx SHARED
+  src/backend.cpp
+  src/gemx.cpp
+  src/inference.cpp
+  src/model.cpp
+  src/postprocess.cpp
+  src/vitpose.cpp
+  src/vitpose_api.cpp
+  src/soma_identity.cpp
+  src/skeleton.cpp
+  src/glb.cpp
+  src/preprocess.cpp
+  src/motion.cpp)
+add_library(gemx::gemx ALIAS gemx)
+target_compile_features(gemx PUBLIC cxx_std_23)
+target_include_directories(gemx PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_compile_definitions(gemx PRIVATE GEMX_BUILDING_LIBRARY)
+set_target_properties(gemx PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
+if(GEMX_ENABLE_GGML)
+  target_link_libraries(gemx PRIVATE ggml::ggml)
+  target_compile_definitions(gemx PRIVATE GEMX_HAVE_GGML=1)
+endif()
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(gemx PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
+endif()
+if(GEMX_SANITIZERS)
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    message(FATAL_ERROR "GEMX_SANITIZERS requires GCC or Clang")
+  endif()
+  add_library(gemx_sanitizers INTERFACE)
+  target_compile_options(gemx_sanitizers INTERFACE -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all)
+  target_link_options(gemx_sanitizers INTERFACE -fsanitize=address,undefined)
+  target_link_libraries(gemx PUBLIC gemx_sanitizers)
+endif()
+
+add_executable(gemx-pipeline tools/pipeline.cpp)
+target_compile_features(gemx-pipeline PRIVATE cxx_std_23)
+target_link_libraries(gemx-pipeline PRIVATE gemx)
+
+if(BUILD_TESTING)
+  add_executable(gemx-preprocess-test tests/test_preprocess.cpp)
+  target_compile_features(gemx-preprocess-test PRIVATE cxx_std_23)
+  target_link_libraries(gemx-preprocess-test PRIVATE gemx)
+  add_test(NAME gemx_preprocess_contract COMMAND gemx-preprocess-test)
+  add_executable(gemx-motion-test tests/test_motion.cpp)
+  target_compile_features(gemx-motion-test PRIVATE cxx_std_23)
+  target_link_libraries(gemx-motion-test PRIVATE gemx)
+  add_test(NAME gemx_motion_contract COMMAND gemx-motion-test)
+  add_executable(gemx-vitpose-preprocess-test tests/test_vitpose_preprocess.cpp)
+  target_compile_features(gemx-vitpose-preprocess-test PRIVATE cxx_std_23)
+  target_link_libraries(gemx-vitpose-preprocess-test PRIVATE gemx)
+  add_test(NAME gemx_vitpose_preprocess_contract COMMAND gemx-vitpose-preprocess-test
+    ${CMAKE_CURRENT_SOURCE_DIR}/reference/vitpose_preprocess_reference.bin)
+  add_executable(gemx-reference-test tests/test_reference.cpp)
+  target_compile_features(gemx-reference-test PRIVATE cxx_std_23)
+  target_link_libraries(gemx-reference-test PRIVATE gemx)
+  add_executable(gemx-vitpose-reference-test tests/test_vitpose_reference.cpp)
+  target_compile_features(gemx-vitpose-reference-test PRIVATE cxx_std_23)
+  target_link_libraries(gemx-vitpose-reference-test PRIVATE gemx)
+  add_executable(gemx-benchmark tools/benchmark.cpp)
+  target_compile_features(gemx-benchmark PRIVATE cxx_std_23)
+  target_link_libraries(gemx-benchmark PRIVATE gemx)
+  add_executable(gemx-vitpose-benchmark tools/vitpose_benchmark.cpp)
+  target_compile_features(gemx-vitpose-benchmark PRIVATE cxx_std_23)
+  target_link_libraries(gemx-vitpose-benchmark PRIVATE gemx)
+endif()
+
+install(TARGETS gemx EXPORT gemxTargets)
+install(TARGETS gemx-pipeline RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES include/gemx.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

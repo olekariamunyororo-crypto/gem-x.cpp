@@ -1,0 +1,3858 @@
+{
+  "initializer_count": 315,
+  "initializers": [
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4224",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "320320"
+      },
+      "name": "learned_pos_params",
+      "shape": [
+        33,
+        32
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "gem.learned_pos_linear.bias",
+      "shape": [
+        32
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4096",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "308032"
+      },
+      "name": "gem.embed_noisyobs.fc1.bias",
+      "shape": [
+        1024
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "540"
+      },
+      "name": "gem.embed_noisyobs.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "2588"
+      },
+      "name": "gem.cliffcam_embedder.0.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "4636"
+      },
+      "name": "gem.cliffcam_embedder.3.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "6684"
+      },
+      "name": "gem.cond_exists_embedder.f_cliffcam.0.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "8732"
+      },
+      "name": "gem.cond_exists_embedder.f_cliffcam.2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "10780"
+      },
+      "name": "gem.cond_exists_embedder.f_imgseq.0.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "12828"
+      },
+      "name": "gem.cond_exists_embedder.f_imgseq.2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "14876"
+      },
+      "name": "gem.cond_exists_embedder.f_cam_angvel.0.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "16924"
+      },
+      "name": "gem.cond_exists_embedder.f_cam_angvel.2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4096",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "312128"
+      },
+      "name": "gem.imgseq_embedder.0.weight",
+      "shape": [
+        1024
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4096",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "316224"
+      },
+      "name": "gem.imgseq_embedder.0.bias",
+      "shape": [
+        1024
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "18972"
+      },
+      "name": "gem.imgseq_embedder.1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "21020"
+      },
+      "name": "gem.cam_angvel_embedder.0.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "23068"
+      },
+      "name": "gem.cam_angvel_embedder.3.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "25116"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.embed_timestep.time_embed.0.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "27164"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.embed_timestep.time_embed.2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "29212"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.add_cond_linear.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "31260"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "33308"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "35356"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "37404"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "39452"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "41500"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "43548"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "45596"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "47644"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "49692"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "344560"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "51740"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.0.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "53788"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "55836"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "57884"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "59932"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "61980"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "64028"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "66076"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "68124"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "70172"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "72220"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "352752"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "74268"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.1.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "76316"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "78364"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "80412"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "82460"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "84508"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "86556"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "88604"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "90652"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "92700"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "94748"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "360944"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "96796"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.2.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "98844"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "100892"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "102940"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "104988"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "107036"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "109084"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "111132"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "113180"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "115228"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "117276"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "369136"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "119324"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.3.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "121372"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "123420"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "125468"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "127516"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "129564"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "131612"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "133660"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "135708"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "137756"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "139804"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "377328"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "141852"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.4.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "143900"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "145948"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "147996"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "150044"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "152092"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "154140"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "156188"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "158236"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "160284"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "162332"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "385520"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "164380"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.5.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "166428"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "168476"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "170524"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "172572"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "174620"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "176668"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "178716"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "180764"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "182812"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "184860"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "393712"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "186908"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.6.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "188956"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "191004"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "193052"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "195100"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "197148"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "199196"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "201244"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "203292"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "205340"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "207388"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "401904"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "209436"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.7.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "211484"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "213532"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "215580"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "217628"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "219676"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "221724"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "223772"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "225820"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "227868"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "229916"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "410096"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "231964"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.8.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "234012"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "236060"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "238108"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "240156"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "242204"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "244252"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "246300"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "248348"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "250396"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "252444"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "418288"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "254492"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.9.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "256540"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "258588"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "260636"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "262684"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "264732"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "266780"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "268828"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "270876"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "272924"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "274972"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "426480"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "277020"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.10.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "279068"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.gate_msa",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "281116"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.gate_mlp",
+      "shape": [
+        1,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "283164"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.norm1.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "285212"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.norm1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "287260"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.attn.query.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "289308"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.attn.key.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "291356"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.attn.value.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "293404"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.attn.proj.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "295452"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.norm2.weight",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "297500"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.norm2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "8192",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "434672"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.mlp.fc1.bias",
+      "shape": [
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "299548"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.blocks.11.mlp.fc2.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "301596"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.final_layer.fc1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2340",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "305692"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.final_layer.fc2.bias",
+      "shape": [
+        585
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2048",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "303644"
+      },
+      "name": "gem.pipeline.denoiser3d.denoiser.pred_cam_head.fc1.bias",
+      "shape": [
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "gem.pipeline.denoiser3d.denoiser.pred_cam_head.fc2.bias",
+      "shape": [
+        3
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "cam_angvel_mean",
+      "shape": [
+        6
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "cam_angvel_std",
+      "shape": [
+        6
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "7728",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "336832"
+      },
+      "name": "denoiser.scale_comps",
+      "shape": [
+        28,
+        69
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "276",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "264"
+      },
+      "name": "denoiser.scale_mean",
+      "shape": [
+        69
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "denoiser.pred_cam_std",
+      "shape": [
+        3
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "denoiser.pred_cam_mean",
+      "shape": [
+        3
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "455152"
+      },
+      "name": "denoiser.blocks.0.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "1503728"
+      },
+      "name": "denoiser.blocks.1.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "2552304"
+      },
+      "name": "denoiser.blocks.2.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "3600880"
+      },
+      "name": "denoiser.blocks.3.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "4649456"
+      },
+      "name": "denoiser.blocks.4.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "5698032"
+      },
+      "name": "denoiser.blocks.5.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "6746608"
+      },
+      "name": "denoiser.blocks.6.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "7795184"
+      },
+      "name": "denoiser.blocks.7.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "8843760"
+      },
+      "name": "denoiser.blocks.8.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "9892336"
+      },
+      "name": "denoiser.blocks.9.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "10940912"
+      },
+      "name": "denoiser.blocks.10.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "11989488"
+      },
+      "name": "denoiser.blocks.11.attn.rope.encoding",
+      "shape": [
+        4096,
+        64
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_15",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_18",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_22",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_40",
+      "shape": [
+        1,
+        1
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_43",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "scalar_tensor_default",
+      "shape": []
+    },
+    {
+      "dtype": "BOOL",
+      "external": {},
+      "name": "val_59",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "clone_2",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_81",
+      "shape": [
+        2,
+        32
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {
+        "length": "264",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "0"
+      },
+      "name": "val_88",
+      "shape": [
+        33,
+        1
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4325376",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "184549376"
+      },
+      "name": "val_102",
+      "shape": [
+        1056,
+        1024
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2097152",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "77398016"
+      },
+      "name": "val_111",
+      "shape": [
+        1024,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "6144",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "324544"
+      },
+      "name": "val_113",
+      "shape": [
+        3,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "13038064"
+      },
+      "name": "val_116",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1050624",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "72810496"
+      },
+      "name": "val_118",
+      "shape": [
+        513,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "14086640"
+      },
+      "name": "val_121",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2097152",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "79495168"
+      },
+      "name": "val_125",
+      "shape": [
+        1024,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1050624",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "73924608"
+      },
+      "name": "val_127",
+      "shape": [
+        513,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "15135216"
+      },
+      "name": "val_130",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "12288",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "442864"
+      },
+      "name": "val_132",
+      "shape": [
+        6,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "16183792"
+      },
+      "name": "val_135",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1050624",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "75038720"
+      },
+      "name": "val_137",
+      "shape": [
+        513,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "17232368"
+      },
+      "name": "val_140",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_149",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "10240000",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "188874752"
+      },
+      "name": "val_159",
+      "shape": [
+        5000,
+        1,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "18280944"
+      },
+      "name": "val_166",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "19329520"
+      },
+      "name": "val_169",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "2246656",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "81592320"
+      },
+      "name": "val_171",
+      "shape": [
+        1097,
+        512
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_174",
+      "shape": []
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_176",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "20378096"
+      },
+      "name": "val_184",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "21426672"
+      },
+      "name": "val_186",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "22475248"
+      },
+      "name": "val_188",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_334",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "23523824"
+      },
+      "name": "val_340",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "83886080"
+      },
+      "name": "val_344",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "88080384"
+      },
+      "name": "val_358",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "24572400"
+      },
+      "name": "val_362",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "25620976"
+      },
+      "name": "val_364",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "26669552"
+      },
+      "name": "val_366",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "27718128"
+      },
+      "name": "val_514",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "92274688"
+      },
+      "name": "val_518",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "96468992"
+      },
+      "name": "val_532",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "28766704"
+      },
+      "name": "val_536",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "29815280"
+      },
+      "name": "val_538",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "30863856"
+      },
+      "name": "val_540",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "31912432"
+      },
+      "name": "val_688",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "100663296"
+      },
+      "name": "val_692",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "104857600"
+      },
+      "name": "val_706",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "32961008"
+      },
+      "name": "val_710",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "34009584"
+      },
+      "name": "val_712",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "35058160"
+      },
+      "name": "val_714",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "36106736"
+      },
+      "name": "val_862",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "109051904"
+      },
+      "name": "val_866",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "113246208"
+      },
+      "name": "val_880",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "37155312"
+      },
+      "name": "val_884",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "38203888"
+      },
+      "name": "val_886",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "39252464"
+      },
+      "name": "val_888",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "40301040"
+      },
+      "name": "val_1036",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "117440512"
+      },
+      "name": "val_1040",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "121634816"
+      },
+      "name": "val_1054",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "41349616"
+      },
+      "name": "val_1058",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "42398192"
+      },
+      "name": "val_1060",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "43446768"
+      },
+      "name": "val_1062",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "44495344"
+      },
+      "name": "val_1210",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "125829120"
+      },
+      "name": "val_1214",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "130023424"
+      },
+      "name": "val_1228",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "45543920"
+      },
+      "name": "val_1232",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "46592496"
+      },
+      "name": "val_1234",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "47641072"
+      },
+      "name": "val_1236",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "48689648"
+      },
+      "name": "val_1384",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "134217728"
+      },
+      "name": "val_1388",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "138412032"
+      },
+      "name": "val_1402",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "49738224"
+      },
+      "name": "val_1406",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "50786800"
+      },
+      "name": "val_1408",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "51835376"
+      },
+      "name": "val_1410",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "52883952"
+      },
+      "name": "val_1558",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "142606336"
+      },
+      "name": "val_1562",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "146800640"
+      },
+      "name": "val_1576",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "53932528"
+      },
+      "name": "val_1580",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "54981104"
+      },
+      "name": "val_1582",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "56029680"
+      },
+      "name": "val_1584",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "57078256"
+      },
+      "name": "val_1732",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "150994944"
+      },
+      "name": "val_1736",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "155189248"
+      },
+      "name": "val_1750",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "58126832"
+      },
+      "name": "val_1754",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "59175408"
+      },
+      "name": "val_1756",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "60223984"
+      },
+      "name": "val_1758",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "61272560"
+      },
+      "name": "val_1906",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "159383552"
+      },
+      "name": "val_1910",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "163577856"
+      },
+      "name": "val_1924",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "62321136"
+      },
+      "name": "val_1928",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "63369712"
+      },
+      "name": "val_1930",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "64418288"
+      },
+      "name": "val_1932",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "65466864"
+      },
+      "name": "val_2080",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "167772160"
+      },
+      "name": "val_2084",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "171966464"
+      },
+      "name": "val_2098",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "66515440"
+      },
+      "name": "val_2102",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "67564016"
+      },
+      "name": "val_2104",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "68612592"
+      },
+      "name": "val_2106",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "69661168"
+      },
+      "name": "val_2254",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "176160768"
+      },
+      "name": "val_2258",
+      "shape": [
+        512,
+        2048
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "4194304",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "180355072"
+      },
+      "name": "val_2272",
+      "shape": [
+        2048,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "70709744"
+      },
+      "name": "val_2274",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1198080",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "76152832"
+      },
+      "name": "val_2283",
+      "shape": [
+        512,
+        585
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_2288",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_2292",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_2309",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_2333",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_2336",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "1048576",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "71758320"
+      },
+      "name": "val_2341",
+      "shape": [
+        512,
+        512
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {
+        "length": "6144",
+        "location": "gem_denoiser.onnx.data",
+        "offset": "330688"
+      },
+      "name": "val_2350",
+      "shape": [
+        512,
+        3
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_2353",
+      "shape": []
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_11",
+      "shape": []
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_23",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_38",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_45",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_60",
+      "shape": []
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_65",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_104",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_107",
+      "shape": []
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_146",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_193",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_244",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "INT64",
+      "external": {},
+      "name": "val_263",
+      "shape": [
+        1
+      ]
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_320",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_346",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_348",
+      "shape": []
+    },
+    {
+      "dtype": "FLOAT",
+      "external": {},
+      "name": "val_351",
+      "shape": []
+    }
+  ],
+  "inputs": {
+    "K_fullimg": {
+      "dtype": "FLOAT",
+      "shape": [
+        "B",
+        "L",
+        3,
+        3
+      ]
+    },
+    "bbx_xys": {
+      "dtype": "FLOAT",
+      "shape": [
+        "B",
+        "L",
+        3
+      ]
+    },
+    "f_cam_angvel": {
+      "dtype": "FLOAT",
+      "shape": [
+        "B",
+        "L",
+        6
+      ]
+    },
+    "f_imgseq": {
+      "dtype": "FLOAT",
+      "shape": [
+        "B",
+        "L",
+        1024
+      ]
+    },
+    "obs": {
+      "dtype": "FLOAT",
+      "shape": [
+        "B",
+        "L",
+        77,
+        3
+      ]
+    }
+  },
+  "node_count": 1028,
+  "operators": {
+    "Add": 177,
+    "Cast": 6,
+    "Clip": 2,
+    "Concat": 42,
+    "Cos": 12,
+    "Div": 21,
+    "Einsum": 24,
+    "Erf": 3,
+    "Expand": 10,
+    "Gather": 17,
+    "GatherND": 4,
+    "Greater": 3,
+    "LayerNormalization": 25,
+    "Less": 3,
+    "MatMul": 94,
+    "Mul": 139,
+    "Neg": 24,
+    "Not": 5,
+    "Or": 3,
+    "Pow": 12,
+    "Range": 1,
+    "ReduceSum": 2,
+    "Reshape": 99,
+    "ScatterElements": 1,
+    "Shape": 4,
+    "Sigmoid": 6,
+    "Sin": 12,
+    "Slice": 67,
+    "Softmax": 12,
+    "Squeeze": 49,
+    "Sub": 5,
+    "Tanh": 12,
+    "Transpose": 54,
+    "Unsqueeze": 65,
+    "Where": 13
+  },
+  "outputs": {
+    "pred_cam": {
+      "dtype": "FLOAT",
+      "shape": [
+        "B",
+        "L",
+        3
+      ]
+    },
+    "pred_x": {
+      "dtype": "FLOAT",
+      "shape": [
+        "B",
+        "L",
+        585
+      ]
+    }
+  },
+  "schema": "gem-x.cpp.onnx-inventory.v1",
+  "source": {
+    "external_data_sha256": "720c2400281b730574bf2a446c33ecd77bf494ac8161b081b09bb122b9fad2f8",
+    "ir_version": 10,
+    "onnx_sha256": "20aab83c01bbd909a258ad0fa465458eda382c63dc80d56952b2ec952d6e192c",
+    "opsets": [
+      {
+        "domain": "",
+        "version": 18
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+gem-x.cpp
+Copyright 2026 gem-x.cpp contributors
+
+This is an independent C++/GGML implementation of NVIDIA GEM-X. NVIDIA's
+GEM-X and SOMA research code are Apache-2.0 and are the pinned behavioral
+references. Credit belongs to their authors for the models, architecture,
+pre/postprocessing definitions, SOMA representation, and released weights.
+
+The ViTPose observation network distributed with GEM-X uses Meta DINOv3. The
+Body feature input and MHR identity data originate from Meta SAM 3D Body/MHR.
+Their models and weights retain their upstream terms. The native crop arithmetic
+was validated against and partially adapted from OpenCV's interpolation rules.
+Relevant notices are preserved under LICENSES/.
+
+GEM-X model weights are distributed separately under the NVIDIA Open Model
+License and are not part of this repository. This repository does not relicense
+NVIDIA, Meta, Momentum, OpenCV, GGML, or model-weight materials. Exact source
+revisions and model hashes are recorded in reference/sources.json.
