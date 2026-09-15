@@ -9,9 +9,11 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <deque>
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -20,6 +22,7 @@
 namespace {
 using session_ptr=std::unique_ptr<gemx_session,decltype(&gemx_session_destroy)>;
 using vitpose_ptr=std::unique_ptr<gemx_vitpose,decltype(&gemx_vitpose_destroy)>;
+using yolox_ptr=std::unique_ptr<gemx_yolox,decltype(&gemx_yolox_destroy)>;
 struct live_delete {void operator()(gemx_live *value) const{gemx_live_destroy(value);}};
 using live_ptr=std::unique_ptr<gemx_live,live_delete>;
 template<class T> void read(std::istream &in,T *value,size_t count=1){
@@ -134,16 +137,154 @@ gemx_session_config config(const char *model,const char *module,const char *back
     return {model,module,backend,std::strcmp(description,"-")?description:"",device,threads,cache};
 }
 
+float iou(const std::array<float,4> &a,const std::array<float,4> &b){
+    const float x0=std::max(a[0],b[0]),y0=std::max(a[1],b[1]);
+    const float x1=std::min(a[2],b[2]),y1=std::min(a[3],b[3]);
+    const float intersection=std::max(0.f,x1-x0)*std::max(0.f,y1-y0);
+    const float aa=std::max(0.f,a[2]-a[0])*std::max(0.f,a[3]-a[1]);
+    const float ab=std::max(0.f,b[2]-b[0])*std::max(0.f,b[3]-b[1]);
+    return intersection/(aa+ab-intersection+1e-7f);
+}
+
+// The state, noise matrices and two-stage association match the compact
+// ByteTrack implementation released by NVIDIA with GEM-X.
+struct kalman_track {
+    std::array<double,8> x{};std::array<double,64> P{};
+    int id=0,hits=1,lost=0;float score=0;
+    kalman_track(const std::array<float,4> &box,float confidence,int identity):id(identity),score(confidence){
+        const double w=box[2]-box[0],h=box[3]-box[1];
+        x={(box[0]+box[2])*.5,(box[1]+box[3])*.5,w/(h+1e-7),h,0,0,0,0};
+        for(int i=0;i<8;++i)P[i*8+i]=i<4?10.:1000.;
+    }
+    std::array<float,4> box() const{
+        const double h=x[3],w=x[2]*h;
+        return {float(x[0]-w*.5),float(x[1]-h*.5),float(x[0]+w*.5),float(x[1]+h*.5)};
+    }
+    void predict(){
+        for(int i=0;i<4;++i)x[i]+=x[i+4];
+        auto old=P;
+        for(int r=0;r<8;++r)for(int c=0;c<8;++c){
+            double value=old[r*8+c];
+            if(r<4)value+=old[(r+4)*8+c];
+            if(c<4)value+=old[r*8+c+4];
+            if(r<4&&c<4)value+=old[(r+4)*8+c+4];
+            P[r*8+c]=value;
+        }
+        for(int i=0;i<8;++i)P[i*8+i]+=i<4?1.:.01;
+        ++lost;
+    }
+    void update(const std::array<float,4> &box,float confidence){
+        const double w=box[2]-box[0],h=box[3]-box[1];
+        std::array<double,4> z{(box[0]+box[2])*.5,(box[1]+box[3])*.5,w/(h+1e-7),h};
+        double augmented[4][8]{};
+        for(int r=0;r<4;++r){
+            for(int c=0;c<4;++c)augmented[r][c]=P[r*8+c]+(r==c?(r==2?10.:1.):0.);
+            augmented[r][4+r]=1.;
+        }
+        for(int column=0;column<4;++column){
+            int pivot=column;for(int row=column+1;row<4;++row)
+                if(std::abs(augmented[row][column])>std::abs(augmented[pivot][column]))pivot=row;
+            if(std::abs(augmented[pivot][column])<1e-12)throw std::runtime_error("singular ByteTrack covariance");
+            if(pivot!=column)for(int c=0;c<8;++c)std::swap(augmented[pivot][c],augmented[column][c]);
+            const double scale=augmented[column][column];for(double &v:augmented[column])v/=scale;
+            for(int row=0;row<4;++row)if(row!=column){const double factor=augmented[row][column];
+                for(int c=0;c<8;++c)augmented[row][c]-=factor*augmented[column][c];}
+        }
+        double K[8][4]{};
+        for(int r=0;r<8;++r)for(int c=0;c<4;++c)for(int k=0;k<4;++k)
+            K[r][c]+=P[r*8+k]*augmented[k][4+c];
+        std::array<double,4> residual{};for(int i=0;i<4;++i)residual[i]=z[i]-x[i];
+        for(int r=0;r<8;++r)for(int c=0;c<4;++c)x[r]+=K[r][c]*residual[c];
+        auto old=P;for(int r=0;r<8;++r)for(int c=0;c<8;++c){
+            double value=old[r*8+c];for(int k=0;k<4;++k)value-=K[r][k]*old[k*8+c];P[r*8+c]=value;
+        }
+        ++hits;lost=0;score=confidence;
+    }
+};
+
+std::vector<std::pair<int,int>> hungarian(const std::vector<std::vector<double>> &cost){
+    if(cost.empty()||cost[0].empty())return {};
+    const int rows=int(cost.size()),columns=int(cost[0].size());const bool transpose=rows>columns;
+    const int n=transpose?columns:rows,m=transpose?rows:columns;
+    auto value=[&](int row,int column){return transpose?cost[column][row]:cost[row][column];};
+    std::vector<double> u(n+1),v(m+1);std::vector<int> p(m+1),way(m+1);
+    for(int i=1;i<=n;++i){
+        p[0]=i;int j0=0;std::vector<double> minimum(m+1,std::numeric_limits<double>::infinity());
+        std::vector<bool> used(m+1);
+        do{
+            used[j0]=true;const int i0=p[j0];double delta=std::numeric_limits<double>::infinity();int j1=0;
+            for(int j=1;j<=m;++j)if(!used[j]){const double current=value(i0-1,j-1)-u[i0]-v[j];
+                if(current<minimum[j]){minimum[j]=current;way[j]=j0;}if(minimum[j]<delta){delta=minimum[j];j1=j;}}
+            for(int j=0;j<=m;++j)if(used[j]){u[p[j]]+=delta;v[j]-=delta;}else minimum[j]-=delta;
+            j0=j1;
+        }while(p[j0]!=0);
+        do{const int j1=way[j0];p[j0]=p[j1];j0=j1;}while(j0);
+    }
+    std::vector<std::pair<int,int>> result;
+    for(int j=1;j<=m;++j)if(p[j])result.push_back(transpose?std::pair{j-1,p[j]-1}:std::pair{p[j]-1,j-1});
+    return result;
+}
+
+struct byte_tracker {
+    std::vector<kalman_track> tracks;int next_id=0,target=-1;std::array<float,4> last{};
+    std::deque<std::array<float,4>> smoothing;
+    void reset(){tracks.clear();next_id=0;target=-1;smoothing.clear();last={};}
+    struct association {std::vector<std::pair<int,int>> matched;std::vector<int> tracks,detections;};
+    association match(const std::vector<int> &track_indices,const std::vector<gemx_detection> &detections,
+                      const std::vector<int> &detection_indices,float threshold){
+        association result;result.tracks=track_indices;result.detections=detection_indices;
+        if(track_indices.empty()||detection_indices.empty())return result;
+        std::vector<std::vector<double>> cost(track_indices.size(),std::vector<double>(detection_indices.size()));
+        for(size_t i=0;i<track_indices.size();++i)for(size_t j=0;j<detection_indices.size();++j)
+            cost[i][j]=1.-iou(tracks[track_indices[i]].box(),{detections[detection_indices[j]].box[0],detections[detection_indices[j]].box[1],detections[detection_indices[j]].box[2],detections[detection_indices[j]].box[3]});
+        std::vector<bool> used_track(track_indices.size()),used_detection(detection_indices.size());
+        for(auto [row,column]:hungarian(cost))if(1.-cost[row][column]>=threshold){
+            result.matched.emplace_back(track_indices[row],detection_indices[column]);used_track[row]=true;used_detection[column]=true;
+        }
+        result.tracks.clear();result.detections.clear();
+        for(size_t i=0;i<track_indices.size();++i)if(!used_track[i])result.tracks.push_back(track_indices[i]);
+        for(size_t i=0;i<detection_indices.size();++i)if(!used_detection[i])result.detections.push_back(detection_indices[i]);
+        return result;
+    }
+    std::array<float,4> update(const gemx_detection *values,uint32_t count,const std::array<float,4> &selection,
+                               uint32_t width,uint32_t height){
+        std::vector<gemx_detection> detections(values,values+count);for(auto &track:tracks)track.predict();
+        std::vector<int> all_tracks(tracks.size()),high,low;std::iota(all_tracks.begin(),all_tracks.end(),0);
+        for(uint32_t i=0;i<count;++i)if(values[i].score>=.5f)high.push_back(i);else if(values[i].score>.1f)low.push_back(i);
+        auto first=match(all_tracks,detections,high,.3f);
+        for(auto [track,detection]:first.matched)tracks[track].update({values[detection].box[0],values[detection].box[1],values[detection].box[2],values[detection].box[3]},values[detection].score);
+        auto second=match(first.tracks,detections,low,.3f);
+        for(auto [track,detection]:second.matched)tracks[track].update({values[detection].box[0],values[detection].box[1],values[detection].box[2],values[detection].box[3]},values[detection].score);
+        for(int detection:first.detections)tracks.emplace_back(
+            std::array<float,4>{values[detection].box[0],values[detection].box[1],values[detection].box[2],values[detection].box[3]},values[detection].score,next_id++);
+        tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](const auto &track){return track.lost>30;}),tracks.end());
+        kalman_track *chosen=nullptr;for(auto &track:tracks)if(track.id==target)chosen=&track;
+        if(!chosen){
+            const auto &reference=target<0?selection:last;float best=-1;
+            for(auto &track:tracks)if(track.lost==0){const float score=iou(track.box(),reference);if(score>best){best=score;chosen=&track;}}
+            if(chosen&&best>0){target=chosen->id;smoothing.clear();}else chosen=nullptr;
+        }
+        std::array<float,4> box=chosen?chosen->box():(target<0?selection:last);
+        for(int axis=0;axis<4;++axis){const float limit=axis%2?float(height-1):float(width-1);box[axis]=std::clamp(box[axis],0.f,limit);}
+        if(chosen&&chosen->lost==0){smoothing.push_back(box);if(smoothing.size()>3)smoothing.pop_front();
+            box={};for(const auto &item:smoothing)for(int axis=0;axis<4;++axis)box[axis]+=item[axis]/smoothing.size();}
+        if(box[2]-box[0]<8||box[3]-box[1]<8)box=selection;last=box;return box;
+    }
+};
+
 int worker(int argc,char **argv){
-    if(argc!=10)throw std::invalid_argument("usage: gemx-pipeline --worker DENOISER VITPOSE MODULE CPU|Vulkan DEVICE DESCRIPTION|- THREADS CONTEXT");
-    const uint32_t device=number(argv[6]),threads=number(argv[8]),context=number(argv[9]);
+    if(argc!=11)throw std::invalid_argument("usage: gemx-pipeline --worker DENOISER VITPOSE YOLOX MODULE CPU|Vulkan DEVICE DESCRIPTION|- THREADS CONTEXT");
+    const uint32_t device=number(argv[7]),threads=number(argv[9]),context=number(argv[10]);
     char error[512]{};
-    auto den_cfg=config(argv[2],argv[4],argv[5],argv[7],device,threads,8);
+    auto den_cfg=config(argv[2],argv[5],argv[6],argv[8],device,threads,8);
     gemx_session *raw_session=nullptr;api(gemx_session_create(&den_cfg,&raw_session,error,sizeof(error)),error);
     session_ptr session(raw_session,gemx_session_destroy);
-    auto pose_cfg=config(argv[3],argv[4],argv[5],argv[7],device,threads,4);
+    auto pose_cfg=config(argv[3],argv[5],argv[6],argv[8],device,threads,4);
     gemx_vitpose *raw_pose=nullptr;api(gemx_vitpose_create(&pose_cfg,&raw_pose,error,sizeof(error)),error);
     vitpose_ptr pose(raw_pose,gemx_vitpose_destroy);
+    auto detector_cfg=config(argv[4],argv[5],argv[6],argv[8],device,threads,1);
+    gemx_yolox *raw_detector=nullptr;api(gemx_yolox_create(&detector_cfg,&raw_detector,error,sizeof(error)),error);
+    yolox_ptr detector(raw_detector,gemx_yolox_destroy);byte_tracker tracker;
     gemx_live *raw_live=nullptr;api(gemx_live_create(session.get(),context,&raw_live,error,sizeof(error)),error);
     live_ptr live(raw_live);std::string current_stream;
     std::fputs("READY\n",stdout);std::fflush(stdout);
@@ -151,13 +292,20 @@ int worker(int argc,char **argv){
         auto stream=field(true);if(stream.empty())break;
         if(stream.size()>128)throw std::invalid_argument("stream identifier is too long");
         auto image_path=field(),body_path=field(),output_path=field();
-        if(stream!=current_stream){gemx_live_reset(live.get());current_stream=stream;}
+        if(stream!=current_stream){gemx_live_reset(live.get());tracker.reset();current_stream=stream;}
         image_data image;
         try{image=load_image(image_path);}catch(const std::exception &e){throw std::runtime_error(std::string("packed image: ")+e.what());}
-        const float width=image.box[2]-image.box[0],height=image.box[3]-image.box[1];
+        gemx_rgb_frame detector_frame{image.rgb.data(),image.rgb.size(),image.width,image.height,image.stride,{}};
+        std::array<gemx_detection,100> detections{};uint32_t detection_count=0;
+        api(gemx_yolox_detect(detector.get(),&detector_frame,.1f,.65f,detections.data(),detections.size(),
+                              &detection_count,error,sizeof(error)),error);
+        std::array<float,4> selected=image.box;
+        const auto tracked=tracker.update(detections.data(),detection_count,selected,image.width,image.height);
+        std::printf("BOX %.9g %.9g %.9g %.9g\n",tracked[0],tracked[1],tracked[2],tracked[3]);std::fflush(stdout);
+        const float width=tracked[2]-tracked[0],height=tracked[3]-tracked[1];
         const float size=std::max(height,width/.75f)*1.2f;
         gemx_rgb_frame frame{image.rgb.data(),image.rgb.size(),image.width,image.height,image.stride,
-                             {(image.box[0]+image.box[2])*.5f,(image.box[1]+image.box[3])*.5f,size}};
+                             {(tracked[0]+tracked[2])*.5f,(tracked[1]+tracked[3])*.5f,size}};
         pose_sample sample;api(gemx_vitpose_infer_rgb(pose.get(),&frame,1,sample.keypoints.data(),
                                                      sample.keypoints.size(),error,sizeof(error)),error);
         std::array<float,1024> token{};

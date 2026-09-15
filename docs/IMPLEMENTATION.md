@@ -18,6 +18,9 @@ ONNX or checkpoint payload is interpreted.
 - ViTPose accepts a 256x192 ImageNet-normalized crop and produces 77x64x48
   heatmaps. Native RGB inference combines original and horizontal-flip samples
   in one bounded graph.
+- YOLOX-X HumanArt accepts a top-left-padded 640x640 BGR image. Native inference
+  decodes the three person-class heads, applies NMS, and feeds ByteTrack before
+  the published 1.2x ViTPose crop expansion.
 
 ## Completed gates
 
@@ -34,8 +37,9 @@ ONNX or checkpoint payload is interpreted.
 6. `sam3d.cpp` exposes the compatible Body token mode, and native ViTPose
    reproduces the official ONNX model. CPU heatmap/keypoint maxima are
    `6.26e-7` and `2.69e-7` respectively.
-7. The public APIs support manual person boxes, complete offline sequences,
-   fixed-context live operation, and skeleton animation export. They form the
+7. The public APIs support YOLOX detection selected by an initial manual box,
+   ByteTrack identity association, complete offline sequences, fixed-context
+   live operation, and skeleton animation export. They form the
    inference adapter for the existing `sam3d.cpp` photo/video/live demo, whose
    selection, bounded frame pipeline, recording, and export controls are
    already shared across body paths.
@@ -77,6 +81,7 @@ Representative release measurements on an AMD Ryzen 9 7900 and RTX 5070 Ti:
 | GEM live | Vulkan, context 120 | 3.26 ms / 307 pushes/s |
 | ViTPose + flip | Vulkan, batch 2 | 33.1 ms / 30.2 source frames/s |
 | ViTPose + flip | Vulkan, batch 8 | 86.0 ms / 46.5 source frames/s |
+| YOLOX-X HumanArt | Vulkan, warm integrated frame | 27.5 ms |
 
 The live optimization reduces host preprocessing/upload/download work from
 about 0.158 ms to 0.034 ms per Vulkan push. Attention still recomputes the full

@@ -19,5 +19,15 @@
     "scale_comps.pth": {"bytes": 8816, "sha256": "4c4861384b176fbe3d3bd7480e87ff8161f19553bf6ec1b718bc9b6bbb559cd6"},
     "scale_mean.pth": {"bytes": 1451, "sha256": "f696a0793217f27fcf23fa1fd63e8a34aa74ef64580078698fb9ea7322ce2891"},
     "SOMA_neutral.npz": {"repository": "https://huggingface.co/nvidia/SOMA-X", "revision": "466879a", "bytes": 27488638, "sha256": "515f7d5bb74be4e370e9adf5e779760ec3581556374c0b33212a32d13ab3b53f"}
+  },
+  "detector": {
+    "model": "YOLOX-X HumanArt a39d44ed",
+    "repository": "https://github.com/open-mmlab/mmpose",
+    "url": "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_x_8xb8-300e_humanart-a39d44ed.zip",
+    "zip_bytes": 368200375,
+    "zip_sha256": "1c6fccc5cd450eb563b1fe4eba13c9bdf9ea8263b6ae1cb3ada765aa4ebea2c7",
+    "onnx_member": "20230928/yolox_onnx/yolox_x_8xb8-300e_humanart-a39d44ed/end2end.onnx",
+    "onnx_bytes": 396283264,
+    "onnx_sha256": "8e9ea96a176bd48501eaaa77216e49ee30794d2f8ba80c7b9862beca4ea972da"
   }
 }

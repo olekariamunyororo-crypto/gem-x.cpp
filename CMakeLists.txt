@@ -29,6 +29,8 @@ add_library(gemx SHARED
   src/postprocess.cpp
   src/vitpose.cpp
   src/vitpose_api.cpp
+  src/yolox.cpp
+  src/yolox_api.cpp
   src/soma_identity.cpp
   src/skeleton.cpp
   src/glb.cpp
@@ -82,6 +84,9 @@ if(BUILD_TESTING)
   add_executable(gemx-vitpose-reference-test tests/test_vitpose_reference.cpp)
   target_compile_features(gemx-vitpose-reference-test PRIVATE cxx_std_23)
   target_link_libraries(gemx-vitpose-reference-test PRIVATE gemx)
+  add_executable(gemx-yolox-reference-test tests/test_yolox_reference.cpp)
+  target_compile_features(gemx-yolox-reference-test PRIVATE cxx_std_23)
+  target_link_libraries(gemx-yolox-reference-test PRIVATE gemx)
   add_executable(gemx-benchmark tools/benchmark.cpp)
   target_compile_features(gemx-benchmark PRIVATE cxx_std_23)
   target_link_libraries(gemx-benchmark PRIVATE gemx)

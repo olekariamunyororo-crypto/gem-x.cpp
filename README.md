@@ -11,6 +11,8 @@ The released regression path is implemented end to end:
   postprocessing;
 - the official DINOv3 ViT-H ViTPose-77 observation model, including OpenCV
   compatible crops, flip augmentation, and UDP peak refinement;
+- the YOLOX-X HumanArt person detector used by the official demo, with
+  ByteTrack identity association and causal three-frame box smoothing;
 - learned SOMA identity fitting through the MHR-to-SOMA transfer data;
 - complete offline sequences up to 4096 frames, split only at the released
   120-frame model boundary;
@@ -22,7 +24,9 @@ the 1024-value token. The `sam3d-body-infer --gem-features` option selects that
 mode. ViTPose and Body image preparation are independent and can run
 concurrently; the GEM denoiser starts after both observations are available.
 The `gemx-pipeline` executable implements the existing `sam3d.cpp` demo's
-persistent worker protocol. It supports independent stream resets, native
+persistent worker protocol. A user's initial box selects an identity; each
+subsequent frame is detected and tracked before both ViTPose and SAM 3D Body
+consume the resulting box. It supports independent stream resets, native
 `GEMPOSE1` recording samples, and animated GLB export from a bounded manifest.
 
 ## Build
@@ -42,6 +46,14 @@ Runtime inference uses GGUF files produced from hash-verified official assets.
 PyTorch, ONNX Runtime, OpenCV, and Python are conversion/reference dependencies;
 the installed runtime library does not depend on them. Asset identities and
 hashes are pinned in `reference/sources.json`; generated weights remain ignored.
+The detector can be prepared without broad archive extraction:
+
+```sh
+python scripts/download_yolox.py
+python scripts/convert_yolox_onnx_to_gguf.py \
+  generated/reference/yolox-humanart.onnx \
+  generated/reference/yolox-f32.gguf --gguf-py /path/to/gguf-py
+```
 
 ## Validation and performance
 
@@ -52,6 +64,9 @@ Against the official ONNX Runtime CPU result, native CPU ViTPose has a
 The Vulkan fast path has a `1.36e-3` maximum heatmap error. Four of 77 peak
 locations move by more than one pixel, with a 6.44 px worst case at a low
 confidence hand endpoint; strict Vulkan F32 mode restores sub-micro-unit parity.
+Native YOLOX differs from the official ONNX Runtime person box by at most
+0.080 px on CPU and 0.065 px on Vulkan. Warm Vulkan detection takes about 27 ms
+on an RTX 5070 Ti in the integrated demo.
 
 On an RTX 5070 Ti, the default Vulkan GEM denoiser evaluates a 120-frame window
 in about 3.38 ms. The resident live path takes about 3.26 ms per push (307 Hz),

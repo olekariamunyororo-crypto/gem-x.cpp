@@ -12,6 +12,11 @@ Their models and weights retain their upstream terms. The native crop arithmetic
 was validated against and partially adapted from OpenCV's interpolation rules.
 Relevant notices are preserved under LICENSES/.
 
+The live person detector implements the YOLOX-X HumanArt inference path used by
+GEM-X. YOLOX is Copyright 2021 Megvii, Inc. and licensed under Apache-2.0. The
+two-stage identity association follows ByteTrack, Copyright 2021 Yifu Zhang,
+licensed under MIT. Their license notices are preserved under LICENSES/.
+
 GEM-X model weights are distributed separately under the NVIDIA Open Model
 License and are not part of this repository. This repository does not relicense
 NVIDIA, Meta, Momentum, OpenCV, GGML, or model-weight materials. Exact source

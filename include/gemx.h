@@ -45,6 +45,7 @@ typedef struct gemx_sequence_view {
 typedef struct gemx_session gemx_session;
 typedef struct gemx_live gemx_live;
 typedef struct gemx_vitpose gemx_vitpose;
+typedef struct gemx_yolox gemx_yolox;
 
 typedef struct gemx_session_config {
     const char *model_path;
@@ -66,6 +67,11 @@ typedef struct gemx_rgb_frame {
     uint64_t row_stride;
     float box[3]; /* cx, cy and square size in source-image pixels */
 } gemx_rgb_frame;
+
+typedef struct gemx_detection {
+    float box[4]; /* source-image x0,y0,x1,y1 */
+    float score;
+} gemx_detection;
 
 typedef struct gemx_profile {
     uint64_t calls;
@@ -194,6 +200,21 @@ GEMX_API gemx_status gemx_vitpose_infer_normalized(gemx_vitpose *model,
 GEMX_API gemx_status gemx_vitpose_infer_rgb(gemx_vitpose *model,
     const gemx_rgb_frame *frames,uint32_t frame_count,
     float *keypoints,uint64_t keypoint_count,char *error,uint64_t error_capacity);
+
+/* Native YOLOX-X HumanArt person detector used by NVIDIA GEM-X. The RGB API
+ * performs the published top-left 640-square letterbox and BGR conversion.
+ * Detection decodes only COCO class zero (person), then applies greedy NMS. */
+GEMX_API gemx_status gemx_yolox_create(const gemx_session_config *config,
+    gemx_yolox **model,char *error,uint64_t error_capacity);
+GEMX_API void gemx_yolox_destroy(gemx_yolox *model);
+GEMX_API const char *gemx_yolox_device(const gemx_yolox *model);
+GEMX_API gemx_status gemx_yolox_prepare_rgb(const gemx_rgb_frame *frame,
+    float *focused_image,uint64_t focused_count,float *resize_ratio,
+    char *error,uint64_t error_capacity);
+GEMX_API gemx_status gemx_yolox_detect(gemx_yolox *model,
+    const gemx_rgb_frame *frame,float score_threshold,float nms_threshold,
+    gemx_detection *detections,uint32_t detection_capacity,uint32_t *detection_count,
+    char *error,uint64_t error_capacity);
 
 #ifdef __cplusplus
 }
