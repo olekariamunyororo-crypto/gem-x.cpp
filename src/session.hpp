@@ -21,6 +21,7 @@ public:
                           const gemx_sequence_view &frame,float *motion,float *camera);
     void decode(const gemx_sequence_view &input,const float *motion,const float *camera,
                 const gemx_motion_view &output);
+    void decode_velocity(const float *motion,float velocity[3]) const;
     skeleton_data skeleton(const gemx_motion_view &motion) const;
     void export_skeleton(const gemx_skeleton_view &skeleton,float fps,const std::string &path) const;
     const std::string &device() const{return backend_->description();}

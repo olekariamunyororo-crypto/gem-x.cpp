@@ -2,6 +2,7 @@
 #include "internal.hpp"
 #include "session.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 #include <mutex>
@@ -10,6 +11,8 @@
 struct gemx_session {std::unique_ptr<gemx::session> implementation;};
 struct gemx_live {
     gemx_session *session=nullptr;uint32_t context=0,count=0,next=0;
+    bool have_previous=false;
+    std::array<float,3> translation{},previous_velocity{},previous_orientation{};
     std::mutex mutex;
 };
 
@@ -84,7 +87,10 @@ gemx_status gemx_live_create(gemx_session *session,uint32_t context,gemx_live **
 }
 
 void gemx_live_destroy(gemx_live *live){delete live;}
-void gemx_live_reset(gemx_live *live){if(live){std::lock_guard lock(live->mutex);live->count=0;live->next=0;}}
+void gemx_live_reset(gemx_live *live){if(live){
+    std::lock_guard lock(live->mutex);live->count=0;live->next=0;live->have_previous=false;
+    live->translation={};live->previous_velocity={};live->previous_orientation={};
+}}
 
 gemx_status gemx_live_push(gemx_live *live,const gemx_sequence_view *frame,float pred_x[585],
     float pred_camera[3],char *error,uint64_t capacity){
@@ -98,6 +104,42 @@ gemx_status gemx_live_push(gemx_live *live,const gemx_sequence_view *frame,float
         live->next=(slot+1)%live->context;live->count=std::min(live->count+1,live->context);
         live->session->implementation->infer_live_frame(live->context,slot,live->count,live->next,
                                                         *frame,pred_x,pred_camera);
+    });
+}
+
+gemx_status gemx_live_push_motion(gemx_live *live,const gemx_sequence_view *frame,
+    const gemx_motion_view *output,char *error,uint64_t capacity){
+    return gemx::boundary(error,capacity,[&]{
+        gemx::require(live && live->session && live->session->implementation && frame && output,
+                      "live stream, frame and decoded output are required");
+        gemx::require(frame->frames==1 && output->frames==1,"live motion push requires one frame");
+        std::lock_guard lock(live->mutex);
+        const uint32_t slot=live->next;
+        live->next=(slot+1)%live->context;live->count=std::min(live->count+1,live->context);
+        std::array<float,585> prediction{};std::array<float,3> camera{};
+        live->session->implementation->infer_live_frame(live->context,slot,live->count,live->next,
+                                                        *frame,prediction.data(),camera.data());
+        live->session->implementation->decode(*frame,prediction.data(),camera.data(),*output);
+        if(live->have_previous){
+            const float x=live->previous_orientation[0],y=live->previous_orientation[1],
+                        z=live->previous_orientation[2];
+            const float angle=std::sqrt(x*x+y*y+z*z);
+            const float half=.5f*angle;
+            const float factor=angle<1e-6f?.5f-angle*angle/48.f:std::sin(half)/angle;
+            const float w=std::cos(half),qx=x*factor,qy=y*factor,qz=z*factor;
+            const float scale=2.f/(w*w+qx*qx+qy*qy+qz*qz);
+            const std::array<float,9> rotation={
+                1-scale*(qy*qy+qz*qz),scale*(qx*qy-qz*w),scale*(qx*qz+qy*w),
+                scale*(qx*qy+qz*w),1-scale*(qx*qx+qz*qz),scale*(qy*qz-qx*w),
+                scale*(qx*qz-qy*w),scale*(qy*qz+qx*w),1-scale*(qx*qx+qy*qy)};
+            for(uint32_t row=0;row<3;++row)
+                for(uint32_t column=0;column<3;++column)
+                    live->translation[row]+=rotation[row*3+column]*live->previous_velocity[column];
+        }
+        std::copy(live->translation.begin(),live->translation.end(),output->translation_world);
+        std::copy_n(output->global_orient_world,3,live->previous_orientation.begin());
+        live->session->implementation->decode_velocity(prediction.data(),live->previous_velocity.data());
+        live->have_previous=true;
     });
 }
 

@@ -11,7 +11,7 @@ import onnxruntime as ort
 
 EXPECTED_ONNX_SHA256 = "20aab83c01bbd909a258ad0fa465458eda382c63dc80d56952b2ec952d6e192c"
 EXPECTED_DATA_SHA256 = "720c2400281b730574bf2a446c33ecd77bf494ac8161b081b09bb122b9fad2f8"
-LENGTHS = (1, 16, 30, 120)
+LENGTHS = (1, 2, 16, 30, 120)
 
 
 def digest(path: Path) -> str:

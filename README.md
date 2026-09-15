@@ -5,7 +5,7 @@ targeting CPU and Vulkan. The library consumes SOMA-77 image observations,
 camera data, and the compatible 1024-value pose token exposed by `sam3d.cpp`.
 It produces temporally coherent SOMA-77 motion and skeleton-only animated GLB.
 
-The released regression path is implemented end to end:
+The released regression components are implemented natively:
 
 - exact GEM-X preprocessing, twelve temporal blocks, output heads, and motion
   postprocessing;
@@ -14,10 +14,10 @@ The released regression path is implemented end to end:
 - the YOLOX-X HumanArt person detector used by the official demo, with
   ByteTrack identity association and causal three-frame box smoothing;
 - learned SOMA identity fitting through the MHR-to-SOMA transfer data;
-- complete offline sequences up to 4096 frames, split only at the released
-  120-frame model boundary;
+- complete offline outputs up to 4096 frames, with exact upstream parity tested
+  through 120 frames and consecutive-window handling beyond that;
 - a fixed-context live API with backend-resident ring inputs, fixed graph reuse,
-  and a 588-float newest-frame download.
+  a 588-float newest-frame download, and causal root-translation state.
 
 `sam3d.cpp` must run its Body pose branch in GEM-X feature mode when producing
 the 1024-value token. The `sam3d-body-infer --gem-features` option selects that
@@ -28,6 +28,13 @@ persistent worker protocol. A user's initial box selects an identity; each
 subsequent frame is detected and tracked before both ViTPose and SAM 3D Body
 consume the resulting box. It supports independent stream resets, native
 `GEMPOSE1` recording samples, and animated GLB export from a bounded manifest.
+
+Parity is established at component boundaries with pinned upstream fixtures.
+It has not yet been established for one complete real video run and its final
+render. The demo is also a causal adaptation of an offline bidirectional model,
+and its default SAM 3D Body encoder uses BF16. Those two paths should not be
+described as numerically identical to upstream. The precise coverage and
+remaining gaps are recorded in `docs/IMPLEMENTATION.md`.
 
 ## Build
 
@@ -57,8 +64,8 @@ python scripts/convert_yolox_onnx_to_gguf.py \
 
 ## Validation and performance
 
-The checked reference fixtures cover preprocessing, denoiser lengths 1, 16, 30,
-and 120, decoded motion, SOMA/MHR skeletons, and ViTPose heatmaps/keypoints.
+The checked reference fixtures cover preprocessing, denoiser lengths 1, 2, 16,
+30, and 120, decoded motion, SOMA/MHR skeletons, and ViTPose heatmaps/keypoints.
 Against the official ONNX Runtime CPU result, native CPU ViTPose has a
 `6.26e-7` maximum heatmap error and `2.69e-7` maximum keypoint-component error.
 The Vulkan fast path has a `1.36e-3` maximum heatmap error. Four of 77 peak
@@ -77,4 +84,4 @@ describe the learned components independently and do not include SAM 3D Body,
 image decode, or application scheduling.
 
 See `docs/IMPLEMENTATION.md` for parity thresholds, known numerical divergence,
-and the step-8 optimization record.
+the causal live/offline distinction, and the step-8 optimization record.

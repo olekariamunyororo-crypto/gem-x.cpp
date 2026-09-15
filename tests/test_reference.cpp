@@ -45,7 +45,7 @@ int main(int argc,char **argv){
         char magic[8];read(file.get(),magic,8);
         if(std::memcmp(magic,"GEMXREF1",8))throw std::runtime_error("bad reference fixture magic");
         uint32_t header[7];read(file.get(),header,sizeof(header));
-        if(header[0]!=1 || header[1]!=120 || header[2]!=4 || header[3]!=77 ||
+        if(header[0]!=1 || header[1]!=120 || header[2]!=5 || header[3]!=77 ||
            header[4]!=1024 || header[5]!=585 || header[6]!=3)
             throw std::runtime_error("unsupported reference fixture dimensions");
         std::vector<uint32_t> lengths(header[2]);read(file.get(),lengths.data(),lengths.size()*4);
@@ -122,41 +122,48 @@ int main(int argc,char **argv){
         if(status!=GEMX_OK)throw std::runtime_error(std::string("live create: ")+message);
         std::unique_ptr<gemx_live,decltype(&gemx_live_destroy)> live(raw_live,gemx_live_destroy);
         std::array<float,585> newest_motion{};std::array<float,3> newest_camera{};
-        std::vector<float> live_keypoints(30*77*3),live_boxes(30*3),live_intrinsics(30*9);
-        std::vector<float> live_features(30*1024),live_angular(30*6);
-        auto repeat_first=[&](std::vector<float> &target,const std::vector<float> &source,uint32_t width){
-            for(uint32_t i=0;i<30;++i)std::copy_n(source.data(),width,target.data()+uint64_t(i)*width);
-        };
-        repeat_first(live_keypoints,keypoints,77*3);repeat_first(live_boxes,boxes,3);
-        repeat_first(live_intrinsics,intrinsics,9);repeat_first(live_features,features,1024);
-        repeat_first(live_angular,angular,6);
         for(uint32_t frame=0;frame<2;++frame){
-            if(frame){
-                std::copy_n(keypoints.data()+77*3,77*3,live_keypoints.data()+29*77*3);
-                std::copy_n(boxes.data()+3,3,live_boxes.data()+29*3);
-                std::copy_n(intrinsics.data()+9,9,live_intrinsics.data()+29*9);
-                std::copy_n(features.data()+1024,1024,live_features.data()+29*1024);
-                std::copy_n(angular.data()+6,6,live_angular.data()+29*6);
-            }
-            gemx_sequence_view expected_input{30,live_keypoints.data(),live_boxes.data(),live_intrinsics.data(),
-                                              live_features.data(),live_angular.data()};
-            std::vector<float> expected_live_motion(30*585),expected_live_camera(30*3);
-            status=gemx_infer(session.get(),&expected_input,expected_live_motion.data(),expected_live_motion.size(),
-                              expected_live_camera.data(),expected_live_camera.size(),message,sizeof(message));
-            if(status!=GEMX_OK)throw std::runtime_error(std::string("live reference: ")+message);
             gemx_sequence_view one{1,keypoints.data()+frame*77*3,
             boxes.data()+frame*3,intrinsics.data()+frame*9,features.data()+frame*1024,
             angular.data()+frame*6};status=gemx_live_push(live.get(),&one,newest_motion.data(),
                 newest_camera.data(),message,sizeof(message));
             if(status!=GEMX_OK)throw std::runtime_error(std::string("live push: ")+message);
-            const auto motion_error=compare(newest_motion.data(),expected_live_motion.data()+29*585,585);
-            const auto camera_error=compare(newest_camera.data(),expected_live_camera.data()+29*3,3);
+            const auto motion_error=compare(newest_motion.data(),expected_motion[frame].data()+uint64_t(frame)*585,585);
+            const auto camera_error=compare(newest_camera.data(),expected_camera[frame].data()+uint64_t(frame)*3,3);
             std::printf("live push %u motion max=%g camera max=%g\n",frame+1,
                         motion_error.maximum,camera_error.maximum);
-            if(motion_error.maximum>(vulkan?3e-3f:5e-6f) || camera_error.maximum>(vulkan?3e-3f:5e-6f))
-                throw std::runtime_error("device-resident live ring differs from materialized window");
+            if(motion_error.maximum>(vulkan?3e-3f:1e-5f) || camera_error.maximum>(vulkan?3e-3f:1e-5f))
+                throw std::runtime_error("device-resident live ring differs from upstream prefix semantics");
         }
         require_finite(std::vector<float>(newest_motion.begin(),newest_motion.end()),"live motion");
+        gemx_live_reset(live.get());
+        std::array<float,76*3> live_body{};std::array<float,45> live_identity{};
+        std::array<float,69> live_scales{};std::array<float,3> live_orient_camera{};
+        std::array<float,3> live_translation_camera{},live_orient_world{},live_translation_world{};
+        gemx_motion_view live_decoded{1,live_body.data(),live_identity.data(),live_scales.data(),
+            live_orient_camera.data(),live_translation_camera.data(),live_orient_world.data(),
+            live_translation_world.data()};
+        for(uint32_t frame=0;frame<2;++frame){
+            gemx_sequence_view one{1,keypoints.data()+frame*77*3,boxes.data()+frame*3,
+                intrinsics.data()+frame*9,features.data()+frame*1024,angular.data()+frame*6};
+            status=gemx_live_push_motion(live.get(),&one,&live_decoded,message,sizeof(message));
+            if(status!=GEMX_OK)throw std::runtime_error(std::string("live motion push: ")+message);
+            require_finite(std::vector<float>(live_translation_world.begin(),live_translation_world.end()),
+                           "live world translation");
+            const float length=std::sqrt(live_translation_world[0]*live_translation_world[0]+
+                live_translation_world[1]*live_translation_world[1]+
+                live_translation_world[2]*live_translation_world[2]);
+            if((frame==0 && length!=0.f) || (frame==1 && length<1e-8f))
+                throw std::runtime_error("live world translation state is invalid");
+        }
+        gemx_live_reset(live.get());
+        gemx_sequence_view reset_frame{1,keypoints.data(),boxes.data(),intrinsics.data(),
+            features.data(),angular.data()};
+        status=gemx_live_push_motion(live.get(),&reset_frame,&live_decoded,message,sizeof(message));
+        if(status!=GEMX_OK)throw std::runtime_error(std::string("reset live motion push: ")+message);
+        if(std::any_of(live_translation_world.begin(),live_translation_world.end(),
+                       [](float value){return value!=0.f;}))
+            throw std::runtime_error("live reset retained world translation");
         const uint32_t length=30;
         gemx_sequence_view input{length,keypoints.data(),boxes.data(),intrinsics.data(),
                                  features.data(),angular.data()};
@@ -233,7 +240,13 @@ int main(int argc,char **argv){
         std::filesystem::remove(glb);
         gemx_profile profile{};
         status=gemx_session_get_profile(session.get(),&profile,message,sizeof(message));
-        if(status!=GEMX_OK || profile.calls!=lengths.size()+8 || profile.frames!=591 ||
+        std::printf("profile calls=%llu frames=%llu cache_hits=%llu\n",
+                    static_cast<unsigned long long>(profile.calls),
+                    static_cast<unsigned long long>(profile.frames),
+                    static_cast<unsigned long long>(profile.graph_cache_hits));
+        // Reference lengths, three long-window checks, five live pushes and one
+        // decoded inference. Live work is charged at its fixed graph shape.
+        if(status!=GEMX_OK || profile.calls!=lengths.size()+9 || profile.frames!=623 ||
            profile.graph_cache_hits<1)
             throw std::runtime_error("inference profile counters are inconsistent");
         std::printf("decoded motion, SOMA-77 forward kinematics and GLB export passed\n");

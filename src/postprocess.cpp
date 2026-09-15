@@ -153,4 +153,15 @@ void session::decode(const gemx_sequence_view &input,const float *normalized,con
         store(translation,output.translation_world+uint64_t(frame)*3);
     }
 }
+
+void session::decode_velocity(const float *motion,float velocity[3]) const{
+    std::lock_guard lock(mutex_);
+    require(motion && velocity,"motion and velocity outputs are required");
+    require(motion_mean_.size()==585 && motion_std_.size()==585,"motion statistics are unavailable");
+    for(uint32_t i=0;i<3;++i){
+        const uint32_t index=582+i;
+        velocity[i]=motion[index]*motion_std_[index]+motion_mean_[index];
+        require(finite(velocity[i]),"finite local velocity required");
+    }
+}
 }

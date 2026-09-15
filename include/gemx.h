@@ -128,9 +128,10 @@ GEMX_API gemx_status gemx_session_create(const gemx_session_config *config,
 GEMX_API void gemx_session_destroy(gemx_session *session);
 
 /* Match the two outputs of NVIDIA's released regression ONNX graph. Sequences
- * up to 4096 frames are preserved in full and evaluated as consecutive
- * windows of at most the released 120-frame context. Outputs are F32 arrays
- * [frames,585] and [frames,3]. */
+ * up to 4096 frames are returned in full and evaluated as consecutive windows
+ * of at most 120 frames. Exact upstream parity is covered through 120 frames;
+ * upstream uses an overlapping local-attention policy for longer sequences.
+ * Outputs are F32 arrays [frames,585] and [frames,3]. */
 GEMX_API gemx_status gemx_infer(gemx_session *session,
     const gemx_sequence_view *input,float *pred_x,uint64_t pred_x_count,
     float *pred_camera,uint64_t pred_camera_count,
@@ -149,17 +150,25 @@ GEMX_API gemx_status gemx_decode_predictions(gemx_session *session,
     const float *pred_camera,uint64_t pred_camera_count,
     const gemx_motion_view *output,char *error,uint64_t error_capacity);
 
-/* Fixed-context streaming helper. The first observation is repeated into the
- * unfilled history, so every push reuses one graph shape. The session must
- * outlive the stream. `gemx_live_push` consumes exactly one frame and returns
- * only the newest raw prediction. A session supports one active live history;
- * reset it before switching logical streams. */
+/* Fixed-shape streaming helper. Unfilled history is attention-masked and
+ * identity/scale averages include only real observations, matching inference
+ * on the actual sequence prefix while reusing one graph shape. The session
+ * must outlive the stream. `gemx_live_push` consumes exactly one frame and
+ * returns only the newest raw prediction. A session supports one active live
+ * history; reset it before switching logical streams. */
 GEMX_API gemx_status gemx_live_create(gemx_session *session,uint32_t context_frames,
     gemx_live **live,char *error,uint64_t error_capacity);
 GEMX_API void gemx_live_destroy(gemx_live *live);
 GEMX_API void gemx_live_reset(gemx_live *live);
 GEMX_API gemx_status gemx_live_push(gemx_live *live,
     const gemx_sequence_view *frame,float pred_x[585],float pred_camera[3],
+    char *error,uint64_t error_capacity);
+
+/* Infer and decode one live frame while preserving the causal world-root
+ * translation between pushes. This is a streaming adaptation: upstream's
+ * offline model can revise earlier velocities using future frames. */
+GEMX_API gemx_status gemx_live_push_motion(gemx_live *live,
+    const gemx_sequence_view *frame,const gemx_motion_view *output,
     char *error,uint64_t error_capacity);
 
 GEMX_API gemx_status gemx_build_skeleton(gemx_session *session,

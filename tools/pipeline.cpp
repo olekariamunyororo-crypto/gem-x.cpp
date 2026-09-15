@@ -310,18 +310,18 @@ int worker(int argc,char **argv){
                                                      sample.keypoints.size(),error,sizeof(error)),error);
         std::array<float,1024> token{};
         try{token=load_pose_token(body_path);}catch(const std::exception &e){throw std::runtime_error(std::string("body token: ")+e.what());}
-        std::array<float,9> K={image.camera[0],0,image.camera[2],0,image.camera[1],image.camera[3],0,0,1};
+        // Upstream GEM-X estimates temporal-model intrinsics from the larger
+        // image dimension. Body separately uses its diagonal focal default.
+        const float focal=static_cast<float>(std::max(image.width,image.height));
+        std::array<float,9> K={focal,0,image.width*.5f,0,focal,image.height*.5f,0,0,1};
         std::array<float,3> box={frame.box[0],frame.box[1],frame.box[2]};
         std::array<float,6> angular{};
         gemx_sequence_view observation{1,sample.keypoints.data(),box.data(),K.data(),token.data(),angular.data()};
-        std::array<float,585> pred{};std::array<float,3> pred_camera{};
-        api(gemx_live_push(live.get(),&observation,pred.data(),pred_camera.data(),error,sizeof(error)),error);
         std::array<float,76*3> body{};std::array<float,45> identity{};std::array<float,69> scales{};
         std::array<float,3> orient_camera{},translation_camera{},orient_world{},translation_world{};
         gemx_motion_view motion{1,body.data(),identity.data(),scales.data(),orient_camera.data(),
                                 translation_camera.data(),orient_world.data(),translation_world.data()};
-        api(gemx_decode_predictions(session.get(),&observation,pred.data(),pred.size(),pred_camera.data(),
-                                    pred_camera.size(),&motion,error,sizeof(error)),error);
+        api(gemx_live_push_motion(live.get(),&observation,&motion,error,sizeof(error)),error);
         gemx_skeleton_view skeleton{1,sample.positions.data(),sample.rotations.data(),sample.parents.data(),
                                     sample.local_translations.data()};
         api(gemx_build_skeleton(session.get(),&motion,&skeleton,error,sizeof(error)),error);

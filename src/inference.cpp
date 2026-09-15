@@ -46,7 +46,7 @@ struct session::graph_state {
     ggml_gallocr_t allocator=nullptr;
     ggml_backend_buffer_t input_buffer=nullptr;
     ggml_tensor *xy=nullptr,*visible=nullptr,*cliff=nullptr,*image=nullptr,*angular=nullptr;
-    ggml_tensor *positions=nullptr,*order=nullptr,*output=nullptr;
+    ggml_tensor *positions=nullptr,*order=nullptr,*attention_mask=nullptr,*average=nullptr,*output=nullptr;
     uint32_t frames=0;
     std::list<uint32_t>::iterator lru;
     ~graph_state(){
@@ -132,6 +132,10 @@ session::graph_state &session::graph(uint32_t frames,bool live){
     if(live){
         state->order=ggml_new_tensor_1d(input_ctx,GGML_TYPE_I32,frames);
         ggml_set_name(state->order,"input.ring_order");ggml_set_input(state->order);
+        state->attention_mask=ggml_new_tensor_2d(input_ctx,GGML_TYPE_F32,frames,frames);
+        ggml_set_name(state->attention_mask,"input.attention_mask");ggml_set_input(state->attention_mask);
+        state->average=ggml_new_tensor_1d(input_ctx,GGML_TYPE_F32,frames);
+        ggml_set_name(state->average,"input.average");ggml_set_input(state->average);
         xy=ggml_reshape_3d(ctx,ggml_get_rows(ctx,ggml_reshape_2d(ctx,state->xy,66,frames),state->order),2,33,frames);
         visible=ggml_reshape_3d(ctx,ggml_get_rows(ctx,ggml_reshape_2d(ctx,state->visible,33,frames),state->order),1,33,frames);
         cliff_input=ggml_get_rows(ctx,state->cliff,state->order);
@@ -189,7 +193,8 @@ session::graph_state &session::graph(uint32_t frames,bool live){
         value=ggml_cont(ctx,ggml_permute(ctx,value,1,2,0,3));
         auto *score=ggml_mul_mat(ctx,key,query);
         ggml_mul_mat_set_prec(score,GGML_PREC_F32);
-        score=ggml_soft_max(ctx,ggml_scale(ctx,score,0.125f));
+        score=live?ggml_soft_max_ext(ctx,score,state->attention_mask,0.125f,0.f):
+                   ggml_soft_max(ctx,ggml_scale(ctx,score,0.125f));
         auto *attention=ggml_mul_mat(ctx,value,score);
         ggml_mul_mat_set_prec(attention,GGML_PREC_F32);
         attention=ggml_cont(ctx,ggml_permute(ctx,attention,0,2,1,3));
@@ -207,12 +212,16 @@ session::graph_state &session::graph(uint32_t frames,bool live){
     auto *body=ggml_view_2d(ctx,motion,456,frames,motion->nb[1],0);
     auto *identity=ggml_view_2d(ctx,motion,45,frames,motion->nb[1],456*sizeof(float));
     identity=ggml_cont(ctx,ggml_transpose(ctx,identity));
-    identity=ggml_scale(ctx,ggml_sum_rows(ctx,identity),1.f/static_cast<float>(frames));
+    if(live)identity=ggml_mul(ctx,identity,ggml_repeat_4d(ctx,state->average,frames,45,1,1));
+    identity=ggml_sum_rows(ctx,identity);
+    if(!live)identity=ggml_scale(ctx,identity,1.f/static_cast<float>(frames));
     identity=ggml_reshape_1d(ctx,identity,45);
     identity=ggml_repeat_4d(ctx,identity,45,frames,1,1);
     auto *scale=ggml_view_2d(ctx,motion,28,frames,motion->nb[1],501*sizeof(float));
     scale=ggml_cont(ctx,ggml_transpose(ctx,scale));
-    scale=ggml_scale(ctx,ggml_sum_rows(ctx,scale),1.f/static_cast<float>(frames));
+    if(live)scale=ggml_mul(ctx,scale,ggml_repeat_4d(ctx,state->average,frames,28,1,1));
+    scale=ggml_sum_rows(ctx,scale);
+    if(!live)scale=ggml_scale(ctx,scale,1.f/static_cast<float>(frames));
     scale=ggml_reshape_1d(ctx,scale,28);
     scale=ggml_mul_mat(ctx,model_->tensor("output.scale_components"),scale);
     ggml_mul_mat_set_prec(scale,GGML_PREC_F32);
@@ -326,9 +335,8 @@ void session::infer_live_frame(uint32_t context,uint32_t slot,uint32_t count,uin
     }
     std::vector<int32_t> order(context);
     if(count<context){
-        const uint32_t padding=context-count;
-        for(uint32_t i=0;i<padding;++i)order[i]=0;
-        for(uint32_t i=padding;i<context;++i)order[i]=i-padding;
+        for(uint32_t i=0;i<count;++i)order[i]=i;
+        for(uint32_t i=count;i<context;++i)order[i]=0;
     }else for(uint32_t i=0;i<context;++i)order[i]=(next+i)%context;
     profile_.preprocessing_ns+=elapsed(preprocessing_started);
 
@@ -354,12 +362,20 @@ void session::infer_live_frame(uint32_t context,uint32_t slot,uint32_t count,uin
         set_slot(state.angular,frame.camera_angular_velocity,6);
     }
     ggml_backend_tensor_set(state.order,order.data(),0,order.size()*sizeof(int32_t));
+    std::vector<float> mask(uint64_t(context)*context),average(context);
+    const float inverse=1.f/static_cast<float>(count);
+    for(uint32_t i=0;i<count;++i)average[i]=inverse;
+    for(uint32_t query=0;query<context;++query)for(uint32_t key=count;key<context;++key)
+        mask[uint64_t(query)*context+key]=-INFINITY;
+    ggml_backend_tensor_set(state.attention_mask,mask.data(),0,mask.size()*sizeof(float));
+    ggml_backend_tensor_set(state.average,average.data(),0,average.size()*sizeof(float));
     profile_.upload_ns+=elapsed(upload_started);
     const auto inference_started=clock_type::now();backend_->compute(state.graph);
     profile_.inference_ns+=elapsed(inference_started);
     const auto download_started=clock_type::now();
     std::array<float,588> output{};
-    ggml_backend_tensor_get(state.output,output.data(),uint64_t(context-1)*output.size()*sizeof(float),
+    const uint32_t output_frame=count<context?count-1:context-1;
+    ggml_backend_tensor_get(state.output,output.data(),uint64_t(output_frame)*output.size()*sizeof(float),
                             output.size()*sizeof(float));
     std::copy_n(output.data(),585,motion);std::copy_n(output.data()+585,3,camera);
     camera[0]=std::max(camera[0],.25f);
