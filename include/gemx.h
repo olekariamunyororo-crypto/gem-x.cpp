@@ -43,7 +43,6 @@ typedef struct gemx_sequence_view {
 } gemx_sequence_view;
 
 typedef struct gemx_session gemx_session;
-typedef struct gemx_live gemx_live;
 typedef struct gemx_vitpose gemx_vitpose;
 typedef struct gemx_yolox gemx_yolox;
 
@@ -149,27 +148,6 @@ GEMX_API gemx_status gemx_decode_predictions(gemx_session *session,
     const gemx_sequence_view *input,const float *pred_x,uint64_t pred_x_count,
     const float *pred_camera,uint64_t pred_camera_count,
     const gemx_motion_view *output,char *error,uint64_t error_capacity);
-
-/* Fixed-shape streaming helper. Unfilled history is attention-masked and
- * identity/scale averages include only real observations, matching inference
- * on the actual sequence prefix while reusing one graph shape. The session
- * must outlive the stream. `gemx_live_push` consumes exactly one frame and
- * returns only the newest raw prediction. A session supports one active live
- * history; reset it before switching logical streams. */
-GEMX_API gemx_status gemx_live_create(gemx_session *session,uint32_t context_frames,
-    gemx_live **live,char *error,uint64_t error_capacity);
-GEMX_API void gemx_live_destroy(gemx_live *live);
-GEMX_API void gemx_live_reset(gemx_live *live);
-GEMX_API gemx_status gemx_live_push(gemx_live *live,
-    const gemx_sequence_view *frame,float pred_x[585],float pred_camera[3],
-    char *error,uint64_t error_capacity);
-
-/* Infer and decode one live frame while preserving the causal world-root
- * translation between pushes. This is a streaming adaptation: upstream's
- * offline model can revise earlier velocities using future frames. */
-GEMX_API gemx_status gemx_live_push_motion(gemx_live *live,
-    const gemx_sequence_view *frame,const gemx_motion_view *output,
-    char *error,uint64_t error_capacity);
 
 GEMX_API gemx_status gemx_build_skeleton(gemx_session *session,
     const gemx_motion_view *motion,const gemx_skeleton_view *skeleton,

@@ -17,8 +17,6 @@ public:
     explicit session(const gemx_session_config &config);
     ~session();
     void infer(const gemx_sequence_view &input,float *motion,float *camera);
-    void infer_live_frame(uint32_t context,uint32_t slot,uint32_t count,uint32_t next,
-                          const gemx_sequence_view &frame,float *motion,float *camera);
     void decode(const gemx_sequence_view &input,const float *motion,const float *camera,
                 const gemx_motion_view &output);
     void decode_velocity(const float *motion,float velocity[3]) const;
@@ -28,7 +26,7 @@ public:
     gemx_profile profile() const;
 private:
     struct graph_state;
-    graph_state &graph(uint32_t frames,bool live=false);
+    graph_state &graph(uint32_t frames);
     void infer_window(const gemx_sequence_view &input,float *motion,float *camera);
     std::unique_ptr<backend> backend_;
     std::unique_ptr<model> model_;

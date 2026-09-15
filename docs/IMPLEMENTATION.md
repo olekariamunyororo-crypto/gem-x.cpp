@@ -37,18 +37,16 @@ ONNX or checkpoint payload is interpreted.
 6. `sam3d.cpp` exposes the compatible Body token mode, and native ViTPose
    reproduces the official ONNX model. CPU heatmap/keypoint maxima are
    `6.26e-7` and `2.69e-7` respectively.
-7. The public APIs support YOLOX detection selected by an initial manual box,
-   ByteTrack identity association, complete offline sequences, fixed-context
-   live operation, and skeleton animation export. They form the
-   inference adapter for the existing `sam3d.cpp` photo/video/live demo, whose
-   selection, bounded frame pipeline, recording, and export controls are
-   already shared across body paths.
+7. The public APIs support YOLOX detection, ByteTrack identity association,
+   complete offline sequences, and skeleton animation export. The standalone
+   `gem-x.cpp` demo records or uploads a
+   complete clip, applies upstream-style dominant-track selection, gap filling,
+   and symmetric smoothing, and then exports its animated skeleton. GEM-X is no
+   longer exposed inside the `sam3d.cpp` demo.
 8. The measured obvious optimizations are implemented: batch 1..8 ViTPose
    graphs, original/flip fusion, parallel RGB crop preparation for up to four
-   source frames, bounded graph caches, backend-resident live ring inputs,
-   per-frame partial uploads, fixed position uploads, logical ring reordering
-   on device, fixed graph reuse, and newest-only prediction downloads. Offline
-   inference still returns every requested frame.
+   source frames, bounded graph caches, and batched offline inference that
+   returns every requested frame.
 
 ## Numerical policy
 
@@ -74,8 +72,7 @@ matrix paths yields maximum heatmap and keypoint errors below `1e-6`.
 | ViTPose and YOLOX, fixed input images | Official ONNX outputs vs native CPU/Vulkan | Covered, with documented reduced-precision peak movement |
 | SAM 3D Body 1024-value token, standard F32 path | Captured upstream CUDA tensor vs native Vulkan tensor | Covered on the captured exemplar |
 | Default demo SAM 3D Body token | BF16 encoder vs upstream/captured F32 token | Approximate |
-| Complete real video through detection, Body, ViTPose, GEM and rendering | No paired upstream/native video exemplar yet | Not established |
-| Live output | Causal prefix adaptation of an offline bidirectional network | Not upstream-equivalent |
+| Complete real video through detection, Body, ViTPose, GEM and rendering | Native standalone demo smoke-tested; no paired upstream/native video exemplar yet | Structurally covered; numerical/visual parity not established |
 | Sequences longer than 120 frames | Consecutive native windows vs upstream local attention | Not established at boundaries |
 
 On the current Body exemplar, the standard BF16 pose token differs from the
@@ -83,29 +80,14 @@ standard F32 token by `0.00457` maximum and `0.000897` mean absolute error. The
 discarded `fast384` experiment differs by `0.208` maximum and `0.0488` mean and
 is not used by the demo.
 
-The live ring is tested against upstream-length one- and two-frame prefixes.
-Unfilled keys are attention-masked, and identity/scale reductions include only
-real frames. Its history tensors use a separate backend buffer because a normal
-graph allocator may reuse dead input storage between computations.
-
-This does not make live operation identical to upstream video inference. The
-released network is bidirectional: an offline result for frame N uses later
-frames, while the live adapter can only use the prefix available at that time.
-The live adapter preserves its inferred root translation across pushes, using
-the previous prefix's velocity. Upstream may revise that velocity once future
-frames arrive. Raw-model fixture parity applies to complete tensor sequences of
-at most 120 frames and to each live prefix's newest raw prediction, not to a
-completed offline clip reconstructed from previously emitted live samples.
-
 Sequences longer than 120 frames are currently split into consecutive 120-frame
 windows. The released Python path instead applies a local attention window over
 the complete sequence, so the boundary frames are not yet parity-covered.
 
-The interactive adapter follows upstream's 192:256, 1.2x detector-box
-conversion for both ViTPose and SAM 3D Body, and uses upstream's
-`max(width,height)` default intrinsics for GEM conditions. Live identity choice
-and gap handling are necessarily causal; upstream chooses the dominant track,
-interpolates gaps, and smooths boxes after reading the complete clip.
+The offline demo follows upstream's 192:256, 1.2x detector-box conversion for
+both ViTPose and SAM 3D Body, uses upstream's `max(width,height)` default
+intrinsics for GEM conditions, chooses the dominant track, interpolates gaps,
+and smooths boxes after reading the complete clip.
 
 ## Performance record
 
@@ -114,16 +96,11 @@ Representative release measurements on an AMD Ryzen 9 7900 and RTX 5070 Ti:
 | Component | Configuration | Time / throughput |
 |---|---|---:|
 | GEM denoiser | CPU, 2 cores, L=120 | 113.5 ms / 1057 output frames/s |
-| GEM live | CPU, 2 cores, context 120 | 115.4 ms / 8.66 pushes/s |
 | GEM denoiser | Vulkan, L=120 | 3.38 ms / 35,519 output frames/s |
-| GEM live | Vulkan, context 120 | 3.26 ms / 307 pushes/s |
 | ViTPose + flip | Vulkan, batch 2 | 33.1 ms / 30.2 source frames/s |
 | ViTPose + flip | Vulkan, batch 8 | 86.0 ms / 46.5 source frames/s |
 | YOLOX-X HumanArt | Vulkan, warm integrated frame | 27.5 ms |
 
-The live optimization reduces host preprocessing/upload/download work from
-about 0.158 ms to 0.034 ms per Vulkan push. Attention still recomputes the full
-bidirectional 120-frame context, which preserves the released model semantics.
-The main end-to-end throughput limit is now the Body and ViTPose observation
-stage, so applications should overlap those independent tasks and batch short
-offline runs. Compilation is always limited to eight jobs.
+The main end-to-end throughput limit is the Body and ViTPose observation stage,
+so applications should batch short offline runs. Compilation is always limited
+to eight jobs.

@@ -12,8 +12,10 @@
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <numeric>
+#include <unordered_map>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -23,8 +25,6 @@ namespace {
 using session_ptr=std::unique_ptr<gemx_session,decltype(&gemx_session_destroy)>;
 using vitpose_ptr=std::unique_ptr<gemx_vitpose,decltype(&gemx_vitpose_destroy)>;
 using yolox_ptr=std::unique_ptr<gemx_yolox,decltype(&gemx_yolox_destroy)>;
-struct live_delete {void operator()(gemx_live *value) const{gemx_live_destroy(value);}};
-using live_ptr=std::unique_ptr<gemx_live,live_delete>;
 template<class T> void read(std::istream &in,T *value,size_t count=1){
     if(!in.read(reinterpret_cast<char *>(value),sizeof(T)*count))throw std::invalid_argument("truncated input");
 }
@@ -122,16 +122,6 @@ pose_sample load_pose(const std::string &path){
     return value;
 }
 
-std::string field(bool boundary=false){
-    std::array<uint8_t,4> bytes{};size_t got=std::fread(bytes.data(),1,4,stdin);
-    if(!got&&boundary&&std::feof(stdin))return {};
-    if(got!=4)throw std::invalid_argument("truncated worker request");
-    uint32_t size=uint32_t(bytes[0])|uint32_t(bytes[1])<<8|uint32_t(bytes[2])<<16|uint32_t(bytes[3])<<24;
-    if(!size||size>4096)throw std::invalid_argument("invalid worker field");
-    std::string value(size,'\0');if(std::fread(value.data(),1,size,stdin)!=size||value.find('\0')!=std::string::npos)
-        throw std::invalid_argument("invalid worker field data");
-    return value;
-}
 gemx_session_config config(const char *model,const char *module,const char *backend,
                            const char *description,uint32_t device,uint32_t threads,uint32_t cache){
     return {model,module,backend,std::strcmp(description,"-")?description:"",device,threads,cache};
@@ -226,10 +216,9 @@ std::vector<std::pair<int,int>> hungarian(const std::vector<std::vector<double>>
 }
 
 struct byte_tracker {
-    std::vector<kalman_track> tracks;int next_id=0,target=-1;std::array<float,4> last{};
-    std::deque<std::array<float,4>> smoothing;
-    void reset(){tracks.clear();next_id=0;target=-1;smoothing.clear();last={};}
+    std::vector<kalman_track> tracks;int next_id=0;
     struct association {std::vector<std::pair<int,int>> matched;std::vector<int> tracks,detections;};
+    struct snapshot {std::array<float,4> box;int id;float score;};
     association match(const std::vector<int> &track_indices,const std::vector<gemx_detection> &detections,
                       const std::vector<int> &detection_indices,float threshold){
         association result;result.tracks=track_indices;result.detections=detection_indices;
@@ -246,8 +235,7 @@ struct byte_tracker {
         for(size_t i=0;i<detection_indices.size();++i)if(!used_detection[i])result.detections.push_back(detection_indices[i]);
         return result;
     }
-    std::array<float,4> update(const gemx_detection *values,uint32_t count,const std::array<float,4> &selection,
-                               uint32_t width,uint32_t height){
+    std::vector<snapshot> advance(const gemx_detection *values,uint32_t count){
         std::vector<gemx_detection> detections(values,values+count);for(auto &track:tracks)track.predict();
         std::vector<int> all_tracks(tracks.size()),high,low;std::iota(all_tracks.begin(),all_tracks.end(),0);
         for(uint32_t i=0;i<count;++i)if(values[i].score>=.5f)high.push_back(i);else if(values[i].score>.1f)low.push_back(i);
@@ -258,76 +246,128 @@ struct byte_tracker {
         for(int detection:first.detections)tracks.emplace_back(
             std::array<float,4>{values[detection].box[0],values[detection].box[1],values[detection].box[2],values[detection].box[3]},values[detection].score,next_id++);
         tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](const auto &track){return track.lost>30;}),tracks.end());
-        kalman_track *chosen=nullptr;for(auto &track:tracks)if(track.id==target)chosen=&track;
-        if(!chosen){
-            const auto &reference=target<0?selection:last;float best=-1;
-            for(auto &track:tracks)if(track.lost==0){const float score=iou(track.box(),reference);if(score>best){best=score;chosen=&track;}}
-            if(chosen&&best>0){target=chosen->id;smoothing.clear();}else chosen=nullptr;
-        }
-        std::array<float,4> box=chosen?chosen->box():(target<0?selection:last);
-        for(int axis=0;axis<4;++axis){const float limit=axis%2?float(height-1):float(width-1);box[axis]=std::clamp(box[axis],0.f,limit);}
-        if(chosen&&chosen->lost==0){smoothing.push_back(box);if(smoothing.size()>3)smoothing.pop_front();
-            box={};for(const auto &item:smoothing)for(int axis=0;axis<4;++axis)box[axis]+=item[axis]/smoothing.size();}
-        if(box[2]-box[0]<8||box[3]-box[1]<8)box=selection;last=box;return box;
+        std::vector<snapshot> visible;for(const auto &track:tracks)if(track.lost==0)
+            visible.push_back({track.box(),track.id,track.score});
+        return visible;
     }
 };
 
-int worker(int argc,char **argv){
-    if(argc!=11)throw std::invalid_argument("usage: gemx-pipeline --worker DENOISER VITPOSE YOLOX MODULE CPU|Vulkan DEVICE DESCRIPTION|- THREADS CONTEXT");
-    const uint32_t device=number(argv[7]),threads=number(argv[9]),context=number(argv[10]);
+std::string read_string(std::istream &in){
+    uint32_t size=0;read(in,&size);if(!size||size>4096)throw std::invalid_argument("invalid manifest path");
+    std::string value(size,'\0');read(in,value.data(),size);
+    if(value.find('\0')!=std::string::npos)throw std::invalid_argument("invalid manifest path data");
+    return value;
+}
+
+std::vector<std::string> image_manifest(const std::string &path){
+    std::ifstream in(path,std::ios::binary);if(!in)throw std::runtime_error("cannot open image manifest");
+    std::array<char,8> magic{};read(in,magic.data(),8);
+    if(std::string(magic.data(),8)!="GEMIMGS1")throw std::invalid_argument("wrong image manifest magic");
+    uint32_t count=0;read(in,&count);if(!count||count>120)throw std::invalid_argument("image manifest must contain 1..120 frames");
+    std::vector<std::string> result;result.reserve(count);
+    for(uint32_t i=0;i<count;++i)result.push_back(read_string(in));
+    if(in.peek()!=std::char_traits<char>::eof())throw std::invalid_argument("trailing image manifest data");
+    return result;
+}
+
+int detect_sequence(int argc,char **argv){
+    if(argc!=10)throw std::invalid_argument("usage: gemx-pipeline --detect YOLOX MODULE CPU|Vulkan DEVICE DESCRIPTION|- THREADS IMAGE_MANIFEST BOXES");
+    char error[512]{};auto cfg=config(argv[2],argv[3],argv[4],argv[6],number(argv[5]),number(argv[7]),1);
+    gemx_yolox *raw=nullptr;api(gemx_yolox_create(&cfg,&raw,error,sizeof(error)),error);
+    yolox_ptr detector(raw,gemx_yolox_destroy);auto paths=image_manifest(argv[8]);byte_tracker tracker;
+    std::vector<std::vector<byte_tracker::snapshot>> tracks;tracks.reserve(paths.size());
+    std::vector<image_data> images;images.reserve(paths.size());std::unordered_map<int,double> area;
+    for(const auto &path:paths){
+        images.push_back(load_image(path));const auto &image=images.back();
+        gemx_rgb_frame frame{image.rgb.data(),image.rgb.size(),image.width,image.height,image.stride,{}};
+        std::array<gemx_detection,100> detections{};uint32_t count=0;
+        api(gemx_yolox_detect(detector.get(),&frame,.1f,.65f,detections.data(),detections.size(),&count,error,sizeof(error)),error);
+        tracks.push_back(tracker.advance(detections.data(),count));
+        for(const auto &item:tracks.back())area[item.id]+=std::max(0.f,item.box[2]-item.box[0])*std::max(0.f,item.box[3]-item.box[1]);
+    }
+    int primary=-1;double greatest=-1;for(const auto &[id,value]:area)if(value>greatest){greatest=value;primary=id;}
+    std::vector<std::array<float,4>> boxes(paths.size());std::vector<bool> valid(paths.size());
+    for(size_t i=0;i<tracks.size();++i)for(const auto &item:tracks[i])if(item.id==primary){boxes[i]=item.box;valid[i]=true;break;}
+    if(primary<0){for(size_t i=0;i<boxes.size();++i)boxes[i]=images[i].box;}
+    else{
+        size_t first=0;while(first<valid.size()&&!valid[first])++first;
+        for(size_t i=0;i<first;++i)boxes[i]=boxes[first];size_t previous=first;
+        for(size_t i=first+1;i<valid.size();++i)if(valid[i]){
+            for(size_t j=previous+1;j<i;++j){const float alpha=float(j-previous)/float(i-previous);
+                for(int axis=0;axis<4;++axis)boxes[j][axis]=boxes[previous][axis]*(1-alpha)+boxes[i][axis]*alpha;}
+            previous=i;
+        }
+        for(size_t i=previous+1;i<boxes.size();++i)boxes[i]=boxes[previous];
+    }
+    auto unsmoothed=boxes;
+    for(size_t i=0;i<boxes.size();++i)for(int axis=0;axis<4;++axis){
+        boxes[i][axis]=0;for(int offset=-2;offset<=2;++offset){
+            const size_t index=static_cast<size_t>(std::clamp<int64_t>(int64_t(i)+offset,0,int64_t(boxes.size()-1)));
+            boxes[i][axis]+=unsmoothed[index][axis]/5.f;
+        }
+        const float limit=axis%2?float(images[i].height-1):float(images[i].width-1);
+        boxes[i][axis]=std::clamp(boxes[i][axis],0.f,limit);
+    }
+    std::ofstream out(argv[9],std::ios::binary|std::ios::trunc);if(!out)throw std::runtime_error("cannot create box output");
+    write(out,"GEMBOX01",8);uint32_t count=boxes.size();write(out,&count);
+    for(const auto &box:boxes)write(out,box.data(),4);
+    return 0;
+}
+
+int offline_sequence(int argc,char **argv){
+    if(argc!=12)throw std::invalid_argument("usage: gemx-pipeline --offline DENOISER VITPOSE MODULE CPU|Vulkan DEVICE DESCRIPTION|- THREADS SEQUENCE_MANIFEST OUTPUT_DIR FPS");
     char error[512]{};
-    auto den_cfg=config(argv[2],argv[5],argv[6],argv[8],device,threads,8);
+    std::ifstream manifest(argv[9],std::ios::binary);if(!manifest)throw std::runtime_error("cannot open sequence manifest");
+    std::array<char,8> magic{};read(manifest,magic.data(),8);
+    if(std::string(magic.data(),8)!="GEMSEQ01")throw std::invalid_argument("wrong sequence manifest magic");
+    uint32_t count=0;read(manifest,&count);
+    if(!count||count>120)throw std::invalid_argument("sequence manifest must contain 1..120 frames");
+    std::vector<std::string> images(count),bodies(count);
+    for(uint32_t i=0;i<count;++i){images[i]=read_string(manifest);bodies[i]=read_string(manifest);}
+    if(manifest.peek()!=std::char_traits<char>::eof())throw std::invalid_argument("trailing sequence manifest data");
+    auto den_cfg=config(argv[2],argv[4],argv[5],argv[7],number(argv[6]),number(argv[8]),2);
     gemx_session *raw_session=nullptr;api(gemx_session_create(&den_cfg,&raw_session,error,sizeof(error)),error);
     session_ptr session(raw_session,gemx_session_destroy);
-    auto pose_cfg=config(argv[3],argv[5],argv[6],argv[8],device,threads,4);
+    auto pose_cfg=config(argv[3],argv[4],argv[5],argv[7],number(argv[6]),number(argv[8]),4);
     gemx_vitpose *raw_pose=nullptr;api(gemx_vitpose_create(&pose_cfg,&raw_pose,error,sizeof(error)),error);
     vitpose_ptr pose(raw_pose,gemx_vitpose_destroy);
-    auto detector_cfg=config(argv[4],argv[5],argv[6],argv[8],device,threads,1);
-    gemx_yolox *raw_detector=nullptr;api(gemx_yolox_create(&detector_cfg,&raw_detector,error,sizeof(error)),error);
-    yolox_ptr detector(raw_detector,gemx_yolox_destroy);byte_tracker tracker;
-    gemx_live *raw_live=nullptr;api(gemx_live_create(session.get(),context,&raw_live,error,sizeof(error)),error);
-    live_ptr live(raw_live);std::string current_stream;
-    std::fputs("READY\n",stdout);std::fflush(stdout);
-    for(;;){
-        auto stream=field(true);if(stream.empty())break;
-        if(stream.size()>128)throw std::invalid_argument("stream identifier is too long");
-        auto image_path=field(),body_path=field(),output_path=field();
-        if(stream!=current_stream){gemx_live_reset(live.get());tracker.reset();current_stream=stream;}
-        image_data image;
-        try{image=load_image(image_path);}catch(const std::exception &e){throw std::runtime_error(std::string("packed image: ")+e.what());}
-        gemx_rgb_frame detector_frame{image.rgb.data(),image.rgb.size(),image.width,image.height,image.stride,{}};
-        std::array<gemx_detection,100> detections{};uint32_t detection_count=0;
-        api(gemx_yolox_detect(detector.get(),&detector_frame,.1f,.65f,detections.data(),detections.size(),
-                              &detection_count,error,sizeof(error)),error);
-        std::array<float,4> selected=image.box;
-        const auto tracked=tracker.update(detections.data(),detection_count,selected,image.width,image.height);
-        std::printf("BOX %.9g %.9g %.9g %.9g\n",tracked[0],tracked[1],tracked[2],tracked[3]);std::fflush(stdout);
-        const float width=tracked[2]-tracked[0],height=tracked[3]-tracked[1];
-        const float size=std::max(height,width/.75f)*1.2f;
-        gemx_rgb_frame frame{image.rgb.data(),image.rgb.size(),image.width,image.height,image.stride,
-                             {(tracked[0]+tracked[2])*.5f,(tracked[1]+tracked[3])*.5f,size}};
-        pose_sample sample;api(gemx_vitpose_infer_rgb(pose.get(),&frame,1,sample.keypoints.data(),
-                                                     sample.keypoints.size(),error,sizeof(error)),error);
-        std::array<float,1024> token{};
-        try{token=load_pose_token(body_path);}catch(const std::exception &e){throw std::runtime_error(std::string("body token: ")+e.what());}
-        // Upstream GEM-X estimates temporal-model intrinsics from the larger
-        // image dimension. Body separately uses its diagonal focal default.
+    std::vector<float> keypoints(uint64_t(count)*77*3),boxes(uint64_t(count)*3),K(uint64_t(count)*9),features(uint64_t(count)*1024),angular(uint64_t(count)*6);
+    std::vector<image_data> loaded;loaded.reserve(count);
+    for(uint32_t i=0;i<count;++i){
+        loaded.push_back(load_image(images[i]));const auto &image=loaded.back();
+        const float cx=(image.box[0]+image.box[2])*.5f,cy=(image.box[1]+image.box[3])*.5f,size=image.box[2]-image.box[0];
+        boxes[uint64_t(i)*3]=cx;boxes[uint64_t(i)*3+1]=cy;boxes[uint64_t(i)*3+2]=size;
         const float focal=static_cast<float>(std::max(image.width,image.height));
-        std::array<float,9> K={focal,0,image.width*.5f,0,focal,image.height*.5f,0,0,1};
-        std::array<float,3> box={frame.box[0],frame.box[1],frame.box[2]};
-        std::array<float,6> angular{};
-        gemx_sequence_view observation{1,sample.keypoints.data(),box.data(),K.data(),token.data(),angular.data()};
-        std::array<float,76*3> body{};std::array<float,45> identity{};std::array<float,69> scales{};
-        std::array<float,3> orient_camera{},translation_camera{},orient_world{},translation_world{};
-        gemx_motion_view motion{1,body.data(),identity.data(),scales.data(),orient_camera.data(),
-                                translation_camera.data(),orient_world.data(),translation_world.data()};
-        api(gemx_live_push_motion(live.get(),&observation,&motion,error,sizeof(error)),error);
-        gemx_skeleton_view skeleton{1,sample.positions.data(),sample.rotations.data(),sample.parents.data(),
-                                    sample.local_translations.data()};
-        api(gemx_build_skeleton(session.get(),&motion,&skeleton,error,sizeof(error)),error);
-        sample.camera=translation_camera;save_pose(output_path,sample);
-        std::fputs("DONE\n",stdout);std::fflush(stdout);
+        std::array<float,9> matrix={focal,0,image.width*.5f,0,focal,image.height*.5f,0,0,1};
+        std::copy(matrix.begin(),matrix.end(),K.begin()+uint64_t(i)*9);
+        auto token=load_pose_token(bodies[i]);std::copy(token.begin(),token.end(),features.begin()+uint64_t(i)*1024);
     }
+    for(uint32_t start=0;start<count;start+=4){const uint32_t batch=std::min(4u,count-start);
+        std::vector<gemx_rgb_frame> frames(batch);for(uint32_t i=0;i<batch;++i){const auto &image=loaded[start+i];
+            frames[i]={image.rgb.data(),image.rgb.size(),image.width,image.height,image.stride,
+                {boxes[uint64_t(start+i)*3],boxes[uint64_t(start+i)*3+1],boxes[uint64_t(start+i)*3+2]}};}
+        api(gemx_vitpose_infer_rgb(pose.get(),frames.data(),batch,keypoints.data()+uint64_t(start)*77*3,
+                                   uint64_t(batch)*77*3,error,sizeof(error)),error);
+    }
+    gemx_sequence_view input{count,keypoints.data(),boxes.data(),K.data(),features.data(),angular.data()};
+    std::vector<float> body(uint64_t(count)*76*3),identity(uint64_t(count)*45),scales(uint64_t(count)*69),
+        orient_camera(uint64_t(count)*3),translation_camera(uint64_t(count)*3),orient_world(uint64_t(count)*3),translation_world(uint64_t(count)*3);
+    gemx_motion_view motion{count,body.data(),identity.data(),scales.data(),orient_camera.data(),translation_camera.data(),orient_world.data(),translation_world.data()};
+    api(gemx_infer_motion(session.get(),&input,&motion,error,sizeof(error)),error);
+    std::vector<float> positions(uint64_t(count)*77*3),rotations(uint64_t(count)*77*4),translations(uint64_t(count)*77*3);std::array<int32_t,77> parents{};
+    gemx_skeleton_view skeleton{count,positions.data(),rotations.data(),parents.data(),translations.data()};
+    api(gemx_build_skeleton(session.get(),&motion,&skeleton,error,sizeof(error)),error);
+    std::error_code filesystem_error;std::filesystem::create_directories(argv[10],filesystem_error);
+    if(filesystem_error)throw std::runtime_error("cannot create sequence output directory");
+    for(uint32_t i=0;i<count;++i){pose_sample sample;
+        std::copy_n(positions.data()+uint64_t(i)*77*3,77*3,sample.positions.data());
+        std::copy_n(rotations.data()+uint64_t(i)*77*4,77*4,sample.rotations.data());
+        std::copy_n(translations.data()+uint64_t(i)*77*3,77*3,sample.local_translations.data());sample.parents=parents;
+        std::copy_n(translation_camera.data()+uint64_t(i)*3,3,sample.camera.data());std::copy_n(keypoints.data()+uint64_t(i)*77*3,77*3,sample.keypoints.data());
+        char name[32];std::snprintf(name,sizeof(name),"%06u.gpose",i);save_pose((std::filesystem::path(argv[10])/name).string(),sample);
+    }
+    const auto glb=std::filesystem::path(argv[10])/"motion.glb";
+    api(gemx_export_skeleton_samples_glb(session.get(),&skeleton,real(argv[11]),glb.c_str(),error,sizeof(error)),error);
     return 0;
 }
 
@@ -359,8 +399,9 @@ int export_sequence(int argc,char **argv){
 
 int main(int argc,char **argv){
     try{
-        if(argc>1&&!std::strcmp(argv[1],"--worker"))return worker(argc,argv);
+        if(argc>1&&!std::strcmp(argv[1],"--detect"))return detect_sequence(argc,argv);
+        if(argc>1&&!std::strcmp(argv[1],"--offline"))return offline_sequence(argc,argv);
         if(argc>1&&!std::strcmp(argv[1],"--export"))return export_sequence(argc,argv);
-        throw std::invalid_argument("expected --worker or --export");
+        throw std::invalid_argument("expected --detect, --offline, or --export");
     }catch(const std::exception &error){std::fprintf(stderr,"%s\n",error.what());return 1;}
 }

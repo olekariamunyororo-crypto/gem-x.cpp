@@ -12,29 +12,42 @@ The released regression components are implemented natively:
 - the official DINOv3 ViT-H ViTPose-77 observation model, including OpenCV
   compatible crops, flip augmentation, and UDP peak refinement;
 - the YOLOX-X HumanArt person detector used by the official demo, with
-  ByteTrack identity association and causal three-frame box smoothing;
+  ByteTrack identity association, gap filling, and symmetric five-frame box
+  smoothing for completed clips;
 - learned SOMA identity fitting through the MHR-to-SOMA transfer data;
 - complete offline outputs up to 4096 frames, with exact upstream parity tested
-  through 120 frames and consecutive-window handling beyond that;
-- a fixed-context live API with backend-resident ring inputs, fixed graph reuse,
-  a 588-float newest-frame download, and causal root-translation state.
+  through 120 frames and consecutive-window handling beyond that.
 
 `sam3d.cpp` must run its Body pose branch in GEM-X feature mode when producing
 the 1024-value token. The `sam3d-body-infer --gem-features` option selects that
-mode. ViTPose and Body image preparation are independent and can run
-concurrently; the GEM denoiser starts after both observations are available.
-The `gemx-pipeline` executable implements the existing `sam3d.cpp` demo's
-persistent worker protocol. A user's initial box selects an identity; each
-subsequent frame is detected and tracked before both ViTPose and SAM 3D Body
-consume the resulting box. It supports independent stream resets, native
-`GEMPOSE1` recording samples, and animated GLB export from a bounded manifest.
+mode. The standalone `demo/` application accepts an uploaded video or records
+a webcam clip in the browser, then processes the complete clip. It runs
+YOLOX/ByteTrack first, extracts Body tokens with a resident SAM3D worker,
+batches ViTPose, evaluates GEM-X once over the full sequence, previews the
+SOMA-77 skeleton, and exports an animated GLB. The browser camera is a recorder;
+there is deliberately no live inference control in this demo. Clips are
+currently bounded to the parity-covered 120-frame context.
 
 Parity is established at component boundaries with pinned upstream fixtures.
 It has not yet been established for one complete real video run and its final
-render. The demo is also a causal adaptation of an offline bidirectional model,
-and its default SAM 3D Body encoder uses BF16. Those two paths should not be
+render. The demo's default SAM 3D Body encoder uses BF16, so it should not be
 described as numerically identical to upstream. The precise coverage and
 remaining gaps are recorded in `docs/IMPLEMENTATION.md`.
+
+## Demo
+
+Build and run from the repository root:
+
+```sh
+cd demo
+CGO_ENABLED=0 go build -o gemx-demo .
+cd ..
+taskset -c 0-7 ./demo/gemx-demo
+```
+
+See `demo/README.md` for path options and the processing stages. The server
+rejects more than eight inference threads and the documented build commands
+use at most eight compilation jobs.
 
 ## Build
 
@@ -76,12 +89,11 @@ Native YOLOX differs from the official ONNX Runtime person box by at most
 on an RTX 5070 Ti in the integrated demo.
 
 On an RTX 5070 Ti, the default Vulkan GEM denoiser evaluates a 120-frame window
-in about 3.38 ms. The resident live path takes about 3.26 ms per push (307 Hz),
-while uploading one observation and downloading one prediction. ViTPose with
-flip augmentation takes about 33.1 ms per source frame at batch 2; batching four
-source frames plus their flips reaches about 46.5 source frames/s. These figures
-describe the learned components independently and do not include SAM 3D Body,
-image decode, or application scheduling.
+in about 3.38 ms. ViTPose with flip augmentation takes about 33.1 ms per source
+frame at batch 2; batching four source frames plus their flips reaches about
+46.5 source frames/s. These figures describe the learned components
+independently and do not include SAM 3D Body, image decode, or application
+scheduling.
 
 See `docs/IMPLEMENTATION.md` for parity thresholds, known numerical divergence,
-the causal live/offline distinction, and the step-8 optimization record.
+and the step-8 optimization record.

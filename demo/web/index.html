@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GEM-X motion capture</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div><span class="eyebrow">GEM-X · OFFLINE MOTION</span><h1>Turn a short clip into an animated skeleton.</h1></div>
+      <p>Record first, infer second. The complete sequence is processed together so temporal context matches GEM-X.</p>
+    </header>
+
+    <section class="workspace">
+      <div class="source panel">
+        <div class="panel-head"><span>01</span><h2>Capture a clip</h2></div>
+        <div class="stage"><video id="video" playsinline controls muted></video><div id="empty">Choose a video or open the camera</div></div>
+        <div class="controls">
+          <label class="button primary">Choose video<input id="file" type="file" accept="video/*" hidden></label>
+          <button id="camera">Open webcam</button>
+          <button id="record" disabled>Start recording</button>
+        </div>
+        <p class="hint">The camera is only a recorder. No live inference runs while you move.</p>
+      </div>
+
+      <div class="result panel">
+        <div class="panel-head"><span>02</span><h2>Process and export</h2></div>
+        <canvas id="skeleton" width="960" height="720"></canvas>
+        <div class="settings">
+          <label>Sample rate <input id="fps" type="number" min="1" max="30" step="1" value="10"><b>fps</b></label>
+          <button id="process" class="button primary" disabled>Build motion</button>
+          <a id="download" class="button disabled" href="#">Download animated GLB</a>
+        </div>
+        <div class="progress"><div id="bar"></div></div>
+        <p id="status">Waiting for a clip.</p>
+      </div>
+    </section>
+
+    <section class="method">
+      <div><strong>Whole-clip tracking</strong><span>YOLOX and ByteTrack choose one person, fill gaps and smooth boxes symmetrically.</span></div>
+      <div><strong>Published inputs</strong><span>ViTPose keypoints and SAM3D Body pose tokens feed the GEM-X temporal model.</span></div>
+      <div><strong>Skeleton export</strong><span>SOMA joint motion is previewed here and written as a portable animated GLB.</span></div>
+    </section>
+    <footer>Implementation credits: NVIDIA Research’s <a href="https://github.com/NVlabs/GEM-X">GEM-X</a> and Meta’s <a href="https://github.com/facebookresearch/sam-3d-body">SAM 3D Body</a>.</footer>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

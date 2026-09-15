@@ -117,53 +117,6 @@ int main(int argc,char **argv){
            compare(long_camera.data(),first_camera.data(),first_camera.size()).maximum>1e-7f ||
            compare(long_camera.data()+120*3,tail_camera.data(),tail_camera.size()).maximum>1e-7f)
             throw std::runtime_error("long inference window boundary differs");
-        gemx_live *raw_live=nullptr;
-        status=gemx_live_create(session.get(),30,&raw_live,message,sizeof(message));
-        if(status!=GEMX_OK)throw std::runtime_error(std::string("live create: ")+message);
-        std::unique_ptr<gemx_live,decltype(&gemx_live_destroy)> live(raw_live,gemx_live_destroy);
-        std::array<float,585> newest_motion{};std::array<float,3> newest_camera{};
-        for(uint32_t frame=0;frame<2;++frame){
-            gemx_sequence_view one{1,keypoints.data()+frame*77*3,
-            boxes.data()+frame*3,intrinsics.data()+frame*9,features.data()+frame*1024,
-            angular.data()+frame*6};status=gemx_live_push(live.get(),&one,newest_motion.data(),
-                newest_camera.data(),message,sizeof(message));
-            if(status!=GEMX_OK)throw std::runtime_error(std::string("live push: ")+message);
-            const auto motion_error=compare(newest_motion.data(),expected_motion[frame].data()+uint64_t(frame)*585,585);
-            const auto camera_error=compare(newest_camera.data(),expected_camera[frame].data()+uint64_t(frame)*3,3);
-            std::printf("live push %u motion max=%g camera max=%g\n",frame+1,
-                        motion_error.maximum,camera_error.maximum);
-            if(motion_error.maximum>(vulkan?3e-3f:1e-5f) || camera_error.maximum>(vulkan?3e-3f:1e-5f))
-                throw std::runtime_error("device-resident live ring differs from upstream prefix semantics");
-        }
-        require_finite(std::vector<float>(newest_motion.begin(),newest_motion.end()),"live motion");
-        gemx_live_reset(live.get());
-        std::array<float,76*3> live_body{};std::array<float,45> live_identity{};
-        std::array<float,69> live_scales{};std::array<float,3> live_orient_camera{};
-        std::array<float,3> live_translation_camera{},live_orient_world{},live_translation_world{};
-        gemx_motion_view live_decoded{1,live_body.data(),live_identity.data(),live_scales.data(),
-            live_orient_camera.data(),live_translation_camera.data(),live_orient_world.data(),
-            live_translation_world.data()};
-        for(uint32_t frame=0;frame<2;++frame){
-            gemx_sequence_view one{1,keypoints.data()+frame*77*3,boxes.data()+frame*3,
-                intrinsics.data()+frame*9,features.data()+frame*1024,angular.data()+frame*6};
-            status=gemx_live_push_motion(live.get(),&one,&live_decoded,message,sizeof(message));
-            if(status!=GEMX_OK)throw std::runtime_error(std::string("live motion push: ")+message);
-            require_finite(std::vector<float>(live_translation_world.begin(),live_translation_world.end()),
-                           "live world translation");
-            const float length=std::sqrt(live_translation_world[0]*live_translation_world[0]+
-                live_translation_world[1]*live_translation_world[1]+
-                live_translation_world[2]*live_translation_world[2]);
-            if((frame==0 && length!=0.f) || (frame==1 && length<1e-8f))
-                throw std::runtime_error("live world translation state is invalid");
-        }
-        gemx_live_reset(live.get());
-        gemx_sequence_view reset_frame{1,keypoints.data(),boxes.data(),intrinsics.data(),
-            features.data(),angular.data()};
-        status=gemx_live_push_motion(live.get(),&reset_frame,&live_decoded,message,sizeof(message));
-        if(status!=GEMX_OK)throw std::runtime_error(std::string("reset live motion push: ")+message);
-        if(std::any_of(live_translation_world.begin(),live_translation_world.end(),
-                       [](float value){return value!=0.f;}))
-            throw std::runtime_error("live reset retained world translation");
         const uint32_t length=30;
         gemx_sequence_view input{length,keypoints.data(),boxes.data(),intrinsics.data(),
                                  features.data(),angular.data()};
@@ -244,9 +197,8 @@ int main(int argc,char **argv){
                     static_cast<unsigned long long>(profile.calls),
                     static_cast<unsigned long long>(profile.frames),
                     static_cast<unsigned long long>(profile.graph_cache_hits));
-        // Reference lengths, three long-window checks, five live pushes and one
-        // decoded inference. Live work is charged at its fixed graph shape.
-        if(status!=GEMX_OK || profile.calls!=lengths.size()+9 || profile.frames!=623 ||
+        // Reference lengths, three long-window checks and one decoded inference.
+        if(status!=GEMX_OK || profile.calls!=lengths.size()+4 || profile.frames!=473 ||
            profile.graph_cache_hits<1)
             throw std::runtime_error("inference profile counters are inconsistent");
         std::printf("decoded motion, SOMA-77 forward kinematics and GLB export passed\n");

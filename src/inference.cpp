@@ -41,18 +41,14 @@ constexpr std::array<uint32_t,33> joints={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,
 
 struct session::graph_state {
     ggml_context *context=nullptr;
-    ggml_context *input_context=nullptr;
     ggml_cgraph *graph=nullptr;
     ggml_gallocr_t allocator=nullptr;
-    ggml_backend_buffer_t input_buffer=nullptr;
     ggml_tensor *xy=nullptr,*visible=nullptr,*cliff=nullptr,*image=nullptr,*angular=nullptr;
-    ggml_tensor *positions=nullptr,*order=nullptr,*attention_mask=nullptr,*average=nullptr,*output=nullptr;
+    ggml_tensor *positions=nullptr,*output=nullptr;
     uint32_t frames=0;
     std::list<uint32_t>::iterator lru;
     ~graph_state(){
         if(allocator)ggml_gallocr_free(allocator);
-        if(input_buffer)ggml_backend_buffer_free(input_buffer);
-        if(input_context)ggml_free(input_context);
         if(context)ggml_free(context);
     }
 };
@@ -96,8 +92,8 @@ session::session(const gemx_session_config &config){
     id.rotation_reference=model_->read_f32("soma.rotation_reference");
 }
 
-session::graph_state &session::graph(uint32_t frames,bool live){
-    const uint32_t cache_key=frames|(live?0x80000000u:0u);
+session::graph_state &session::graph(uint32_t frames){
+    const uint32_t cache_key=frames;
     if(auto found=graphs_.find(cache_key);found!=graphs_.end()){
         lru_.erase(found->second->lru);lru_.push_front(cache_key);found->second->lru=lru_.begin();
         ++profile_.graph_cache_hits;return *found->second;
@@ -109,18 +105,12 @@ session::graph_state &session::graph(uint32_t frames,bool live){
     auto *ctx=state->context;
     state->graph=ggml_new_graph_custom(ctx,2048,false);
     if(!state->graph)throw std::bad_alloc();
-    ggml_context *input_ctx=ctx;
-    if(live){
-        state->input_context=ggml_init({256u*1024u,nullptr,true});
-        if(!state->input_context)throw std::bad_alloc();
-        input_ctx=state->input_context;
-    }
-    state->xy=ggml_new_tensor_3d(input_ctx,GGML_TYPE_F32,2,33,frames);
-    state->visible=ggml_new_tensor_3d(input_ctx,GGML_TYPE_F32,1,33,frames);
-    state->cliff=ggml_new_tensor_2d(input_ctx,GGML_TYPE_F32,3,frames);
-    state->image=ggml_new_tensor_2d(input_ctx,GGML_TYPE_F32,1024,frames);
-    state->angular=ggml_new_tensor_2d(input_ctx,GGML_TYPE_F32,6,frames);
-    state->positions=ggml_new_tensor_1d(input_ctx,GGML_TYPE_I32,frames);
+    state->xy=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,2,33,frames);
+    state->visible=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,1,33,frames);
+    state->cliff=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,3,frames);
+    state->image=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,1024,frames);
+    state->angular=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,6,frames);
+    state->positions=ggml_new_tensor_1d(ctx,GGML_TYPE_I32,frames);
     for(auto [tensor,name]:std::array<std::pair<ggml_tensor *,const char *>,6>{{
         {state->xy,"input.xy"},{state->visible,"input.visible"},{state->cliff,"input.cliff"},
         {state->image,"input.image"},{state->angular,"input.angular"},
@@ -129,19 +119,6 @@ session::graph_state &session::graph(uint32_t frames,bool live){
     }
     auto *xy=state->xy,*visible=state->visible,*cliff_input=state->cliff;
     auto *image_input=state->image,*angular_input=state->angular;
-    if(live){
-        state->order=ggml_new_tensor_1d(input_ctx,GGML_TYPE_I32,frames);
-        ggml_set_name(state->order,"input.ring_order");ggml_set_input(state->order);
-        state->attention_mask=ggml_new_tensor_2d(input_ctx,GGML_TYPE_F32,frames,frames);
-        ggml_set_name(state->attention_mask,"input.attention_mask");ggml_set_input(state->attention_mask);
-        state->average=ggml_new_tensor_1d(input_ctx,GGML_TYPE_F32,frames);
-        ggml_set_name(state->average,"input.average");ggml_set_input(state->average);
-        xy=ggml_reshape_3d(ctx,ggml_get_rows(ctx,ggml_reshape_2d(ctx,state->xy,66,frames),state->order),2,33,frames);
-        visible=ggml_reshape_3d(ctx,ggml_get_rows(ctx,ggml_reshape_2d(ctx,state->visible,33,frames),state->order),1,33,frames);
-        cliff_input=ggml_get_rows(ctx,state->cliff,state->order);
-        image_input=ggml_get_rows(ctx,state->image,state->order);
-        angular_input=ggml_get_rows(ctx,state->angular,state->order);
-    }
 
     auto *obs=linear(ctx,*model_,"obs.xy",xy);
     auto *vis=ggml_repeat_4d(ctx,visible,32,33,frames,1);
@@ -193,8 +170,7 @@ session::graph_state &session::graph(uint32_t frames,bool live){
         value=ggml_cont(ctx,ggml_permute(ctx,value,1,2,0,3));
         auto *score=ggml_mul_mat(ctx,key,query);
         ggml_mul_mat_set_prec(score,GGML_PREC_F32);
-        score=live?ggml_soft_max_ext(ctx,score,state->attention_mask,0.125f,0.f):
-                   ggml_soft_max(ctx,ggml_scale(ctx,score,0.125f));
+        score=ggml_soft_max(ctx,ggml_scale(ctx,score,0.125f));
         auto *attention=ggml_mul_mat(ctx,value,score);
         ggml_mul_mat_set_prec(attention,GGML_PREC_F32);
         attention=ggml_cont(ctx,ggml_permute(ctx,attention,0,2,1,3));
@@ -212,16 +188,14 @@ session::graph_state &session::graph(uint32_t frames,bool live){
     auto *body=ggml_view_2d(ctx,motion,456,frames,motion->nb[1],0);
     auto *identity=ggml_view_2d(ctx,motion,45,frames,motion->nb[1],456*sizeof(float));
     identity=ggml_cont(ctx,ggml_transpose(ctx,identity));
-    if(live)identity=ggml_mul(ctx,identity,ggml_repeat_4d(ctx,state->average,frames,45,1,1));
     identity=ggml_sum_rows(ctx,identity);
-    if(!live)identity=ggml_scale(ctx,identity,1.f/static_cast<float>(frames));
+    identity=ggml_scale(ctx,identity,1.f/static_cast<float>(frames));
     identity=ggml_reshape_1d(ctx,identity,45);
     identity=ggml_repeat_4d(ctx,identity,45,frames,1,1);
     auto *scale=ggml_view_2d(ctx,motion,28,frames,motion->nb[1],501*sizeof(float));
     scale=ggml_cont(ctx,ggml_transpose(ctx,scale));
-    if(live)scale=ggml_mul(ctx,scale,ggml_repeat_4d(ctx,state->average,frames,28,1,1));
     scale=ggml_sum_rows(ctx,scale);
-    if(!live)scale=ggml_scale(ctx,scale,1.f/static_cast<float>(frames));
+    scale=ggml_scale(ctx,scale,1.f/static_cast<float>(frames));
     scale=ggml_reshape_1d(ctx,scale,28);
     scale=ggml_mul_mat(ctx,model_->tensor("output.scale_components"),scale);
     ggml_mul_mat_set_prec(scale,GGML_PREC_F32);
@@ -237,11 +211,6 @@ session::graph_state &session::graph(uint32_t frames,bool live){
     state->output=ggml_concat(ctx,motion,camera,0);
     ggml_set_name(state->output,"output.prediction");ggml_set_output(state->output);
     ggml_build_forward_expand(state->graph,state->output);
-    if(live){
-        state->input_buffer=ggml_backend_alloc_ctx_tensors_from_buft(state->input_context,
-                                                                     backend_->buffer_type());
-        if(!state->input_buffer)throw std::bad_alloc();
-    }
     state->allocator=ggml_gallocr_new(backend_->buffer_type());
     if(!state->allocator || !ggml_gallocr_reserve(state->allocator,state->graph) ||
        !ggml_gallocr_alloc_graph(state->allocator,state->graph))
@@ -311,76 +280,6 @@ void session::infer(const gemx_sequence_view &input,float *motion,float *camera)
         infer_window(window,motion+uint64_t(start)*585,camera+uint64_t(start)*3);
     }
     ++profile_.calls;profile_.frames+=input.frames;
-}
-
-void session::infer_live_frame(uint32_t context,uint32_t slot,uint32_t count,uint32_t next,
-                               const gemx_sequence_view &frame,float *motion,float *camera){
-    std::lock_guard lock(mutex_);
-    require(context>=1 && context<=120 && slot<context && count>=1 && count<=context && next<context,
-            "invalid live ring state");
-    require(frame.frames==1 && frame.keypoints && frame.boxes && frame.intrinsics &&
-            frame.body_features && frame.camera_angular_velocity && motion && camera,
-            "live inference requires one complete frame and outputs");
-
-    const auto preprocessing_started=clock_type::now();
-    std::array<float,77*3> normalized{};std::array<float,3> cliff{};
-    char message[256]{};
-    auto status=gemx_preprocess_sequence(&frame,normalized.data(),normalized.size(),
-                                         cliff.data(),cliff.size(),message,sizeof(message));
-    if(status!=GEMX_OK)throw std::invalid_argument(message);
-    std::array<float,33*2> xy{};std::array<float,33> visible{};
-    for(uint32_t j=0;j<33;++j){
-        const auto *source=normalized.data()+joints[j]*3;
-        xy[j*2]=source[0];xy[j*2+1]=source[1];visible[j]=source[2]>.5f?1.f:0.f;
-    }
-    std::vector<int32_t> order(context);
-    if(count<context){
-        for(uint32_t i=0;i<count;++i)order[i]=i;
-        for(uint32_t i=count;i<context;++i)order[i]=0;
-    }else for(uint32_t i=0;i<context;++i)order[i]=(next+i)%context;
-    profile_.preprocessing_ns+=elapsed(preprocessing_started);
-
-    auto &state=graph(context,true);
-    const auto upload_started=clock_type::now();
-    auto set_slot=[&](ggml_tensor *tensor,const float *data,size_t width){
-        ggml_backend_tensor_set(tensor,data,uint64_t(slot)*width*sizeof(float),width*sizeof(float));
-    };
-    if(count==1){
-        auto fill=[&](ggml_tensor *tensor,const float *data,size_t width){
-            std::vector<float> repeated(uint64_t(context)*width);
-            for(uint32_t i=0;i<context;++i)std::copy_n(data,width,repeated.data()+uint64_t(i)*width);
-            ggml_backend_tensor_set(tensor,repeated.data(),0,repeated.size()*sizeof(float));
-        };
-        fill(state.xy,xy.data(),xy.size());fill(state.visible,visible.data(),visible.size());
-        fill(state.cliff,cliff.data(),cliff.size());fill(state.image,frame.body_features,1024);
-        fill(state.angular,frame.camera_angular_velocity,6);
-        std::vector<int32_t> positions(context);for(uint32_t i=0;i<context;++i)positions[i]=i;
-        ggml_backend_tensor_set(state.positions,positions.data(),0,positions.size()*sizeof(int32_t));
-    }else{
-        set_slot(state.xy,xy.data(),xy.size());set_slot(state.visible,visible.data(),visible.size());
-        set_slot(state.cliff,cliff.data(),cliff.size());set_slot(state.image,frame.body_features,1024);
-        set_slot(state.angular,frame.camera_angular_velocity,6);
-    }
-    ggml_backend_tensor_set(state.order,order.data(),0,order.size()*sizeof(int32_t));
-    std::vector<float> mask(uint64_t(context)*context),average(context);
-    const float inverse=1.f/static_cast<float>(count);
-    for(uint32_t i=0;i<count;++i)average[i]=inverse;
-    for(uint32_t query=0;query<context;++query)for(uint32_t key=count;key<context;++key)
-        mask[uint64_t(query)*context+key]=-INFINITY;
-    ggml_backend_tensor_set(state.attention_mask,mask.data(),0,mask.size()*sizeof(float));
-    ggml_backend_tensor_set(state.average,average.data(),0,average.size()*sizeof(float));
-    profile_.upload_ns+=elapsed(upload_started);
-    const auto inference_started=clock_type::now();backend_->compute(state.graph);
-    profile_.inference_ns+=elapsed(inference_started);
-    const auto download_started=clock_type::now();
-    std::array<float,588> output{};
-    const uint32_t output_frame=count<context?count-1:context-1;
-    ggml_backend_tensor_get(state.output,output.data(),uint64_t(output_frame)*output.size()*sizeof(float),
-                            output.size()*sizeof(float));
-    std::copy_n(output.data(),585,motion);std::copy_n(output.data()+585,3,camera);
-    camera[0]=std::max(camera[0],.25f);
-    profile_.download_ns+=elapsed(download_started);
-    ++profile_.calls;profile_.frames+=context;
 }
 
 gemx_profile session::profile() const{std::lock_guard lock(mutex_);return profile_;}
