@@ -110,3 +110,6 @@ native inference on identical pixels. Native offline output includes
 `predictions.bin`, which `scripts/compare_e2e_parity.py` compares against
 upstream raw heads. Use `scripts/audit_video_parity.py` for decoded skeleton
 metrics; see [the current audit](docs/LIVE-OFFLINE-PARITY.md) for the measurements.
+
+The [live profiling report](docs/LIVE-PROFILING.md) records strict-F32 stage
+timings, byte-identical optimizations and remaining performance targets.

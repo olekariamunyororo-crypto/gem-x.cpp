@@ -41,7 +41,7 @@ def main():
     def request(method, path, data=None):
         return urllib.request.urlopen(urllib.request.Request(a.url+path, data=data, method=method), timeout=120)
     path = None
-    errors, timings = [], []
+    errors, timings, native_timings = [], [], []
     try:
         with request('POST', '/api/live') as response:
             path = '/api/live/'+json.load(response)['id']
@@ -64,6 +64,7 @@ def main():
                     assert response.status == 204
                     continue
                 assert response.status == 200 and payload[:8] == b'GEMPOSE2'
+                native_timings.append(float(response.headers['X-GEMX-Inference-Ms'])/1000)
             timings.append(time.monotonic()-start)
             values = np.frombuffer(payload, '<f4', offset=8)
             assert np.isfinite(values[:1001]).all()
@@ -85,6 +86,9 @@ def main():
         assert maxima[1] < 1e-4, maxima
         report = dict(poses=len(errors),keypoint_component_max=float(maxima[0]),
             joint_max_metres=float(maxima[1]),mean_http_seconds=float(np.mean(timings)),
+            p95_http_seconds=float(np.percentile(timings,95)),
+            mean_native_seconds=float(np.mean(native_timings)),
+            mean_other_http_seconds=float(np.mean(np.array(timings)-native_timings)),
             note='Lossless frame HTTP replay, not physical camera latency; strict F32.')
         a.output.parent.mkdir(parents=True,exist_ok=True)
         a.output.write_text(json.dumps(report,indent=2)+'\n')

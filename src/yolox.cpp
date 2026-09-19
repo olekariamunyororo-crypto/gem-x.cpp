@@ -55,30 +55,40 @@ std::vector<float> yolox_prepare_rgb(const gemx_rgb_frame &frame,float &ratio){
     const int resized_width=std::max(1,int(frame.width*resize_ratio));
     const int resized_height=std::max(1,int(frame.height*resize_ratio));
     std::vector<float> result(uint64_t(focus_channels)*focus_size*focus_size);
+    // Coefficients depend only on destination coordinates, not on channel or
+    // Focus quadrant. Compute them once per axis, preserving OpenCV rounding.
+    struct axis_sample {int first,second,a0,a1;};
+    std::array<axis_sample,image_size> xs{},ys{};
+    for(int dx=0;dx<resized_width;++dx){
+        float fx=float((double(dx)+.5)*frame.width/resized_width-.5);
+        int sx=int(std::floor(fx));fx-=sx;
+        if(sx<0){sx=0;fx=0;}else if(sx>=int(frame.width)-1){sx=int(frame.width)-1;fx=0;}
+        xs[dx]={sx,std::min(sx+1,int(frame.width)-1),
+            int(std::nearbyint((1.f-fx)*2048)),int(std::nearbyint(fx*2048))};
+    }
+    for(int dy=0;dy<resized_height;++dy){
+        float fy=float((double(dy)+.5)*frame.height/resized_height-.5);
+        int sy=int(std::floor(fy));fy-=sy;
+        ys[dy]={std::clamp(sy,0,int(frame.height)-1),std::clamp(sy+1,0,int(frame.height)-1),
+            int(std::nearbyint((1.f-fy)*2048)),int(std::nearbyint(fy*2048))};
+    }
     auto pixel=[&](int dx,int dy,int bgr){
         if(dx>=resized_width||dy>=resized_height)return uint8_t(114);
-        // OpenCV 4 resize uses 11-bit separable coefficients, unlike
-        // warpAffine's 5-bit interpolation table. Match its uchar path's
-        // intermediate truncation as well as the final rounding.
-        float fx=float((double(dx)+.5)*frame.width/resized_width-.5);
-        float fy=float((double(dy)+.5)*frame.height/resized_height-.5);
-        int sx=int(std::floor(fx)),sy=int(std::floor(fy));fx-=sx;fy-=sy;
-        if(sx<0){sx=0;fx=0;}else if(sx>=int(frame.width)-1){sx=int(frame.width)-1;fx=0;}
-        const int ax0=int(std::nearbyint((1.f-fx)*2048)),ax1=int(std::nearbyint(fx*2048));
-        const int ay0=int(std::nearbyint((1.f-fy)*2048)),ay1=int(std::nearbyint(fy*2048));
-        const int sx1=std::min(sx+1,int(frame.width)-1);
-        const int sy0=std::clamp(sy,0,int(frame.height)-1),sy1=std::clamp(sy+1,0,int(frame.height)-1);
+        const auto [sx,sx1,ax0,ax1]=xs[dx];
+        const auto [sy0,sy1,ay0,ay1]=ys[dy];
         const int channel=2-bgr;
         auto sample=[&](int x,int y){return int(frame.rgb[uint64_t(y)*frame.row_stride+uint64_t(x)*3+channel]);};
         const int row0=sample(sx,sy0)*ax0+sample(sx1,sy0)*ax1;
         const int row1=sample(sx,sy1)*ax0+sample(sx1,sy1)*ax1;
         return uint8_t((((ay0*(row0>>4))>>16)+((ay1*(row1>>4))>>16)+2)>>2);
     };
-    for(int y=0;y<focus_size;++y)for(int x=0;x<focus_size;++x)
-        for(int xo=0;xo<2;++xo)for(int yo=0;yo<2;++yo)for(int c=0;c<3;++c){
-            const int channel=(xo*2+yo)*3+c;
+    // Write each Focus channel contiguously. This also keeps the row's
+    // vertical coefficients invariant across the inner pixel loop.
+    for(int xo=0;xo<2;++xo)for(int yo=0;yo<2;++yo)for(int c=0;c<3;++c){
+        const int channel=(xo*2+yo)*3+c;
+        for(int y=0;y<focus_size;++y)for(int x=0;x<focus_size;++x)
             result[(uint64_t(channel)*focus_size+y)*focus_size+x]=pixel(x*2+xo,y*2+yo,c);
-        }
+    }
     return result;
 }
 

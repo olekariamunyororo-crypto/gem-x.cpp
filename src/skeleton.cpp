@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstring>
 
 namespace gemx { namespace {
 using mat=std::array<float,9>;using vec=std::array<float,3>;using quat=std::array<float,4>;
@@ -72,7 +73,14 @@ skeleton_data session::skeleton(const gemx_motion_view &motion) const{
     }
     for(float &value:identity)value/=motion.frames;
     for(float &value:scales)value/=motion.frames;
-    auto fitted=fit_soma_identity(soma_identity_,identity.data(),scales.data()+1,scales[0]);
+    // Reuse only bit-identical inputs: no shape smoothing, quantization or
+    // tolerance-based cache key. A new frame's shape still gets its own fit.
+    if(!shape_cached_ || std::memcmp(identity.data(),cached_identity_.data(),sizeof(identity)) ||
+       std::memcmp(scales.data(),cached_scales_.data(),sizeof(scales))){
+        auto fitted=fit_soma_identity(soma_identity_,identity.data(),scales.data()+1,scales[0]);
+        cached_shape_=std::move(fitted);cached_identity_=identity;cached_scales_=scales;shape_cached_=true;
+    }
+    const auto &fitted=cached_shape_;
     for(uint32_t frame=0;frame<motion.frames;++frame){
         std::array<mat,77> world_rotation{};std::array<vec,77> world_position{};
         for(uint32_t joint=1;joint<78;++joint){

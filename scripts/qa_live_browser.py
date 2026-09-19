@@ -39,7 +39,7 @@ def main():
             c=CDP(next(t['webSocketDebuggerUrl'] for t in targets if t['type']=='page'))
             c.call('Page.enable');c.call('Runtime.enable')
             c.call('Page.navigate',dict(url=a.url))
-            c.wait('document.querySelector("#live-start") && typeof window.fetch === "function"')
+            c.wait('typeof document.querySelector("#live-start")?.onclick === "function"')
             c.evaluate('''window.qa={poses:0,pending:0,maxPending:0};window.realFetch=window.fetch;window.fetch=async(...args)=>{
               const frame=String(args[0]).endsWith('/frame');if(frame){qa.pending++;qa.maxPending=Math.max(qa.maxPending,qa.pending)}
               try{const r=await realFetch(...args);if(frame&&r.status===200)qa.poses++;return r}finally{if(frame)qa.pending--}

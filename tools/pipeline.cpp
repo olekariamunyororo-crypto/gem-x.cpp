@@ -437,16 +437,29 @@ int live_worker(int argc,char **argv){
     auto previous=std::chrono::steady_clock::now();uint32_t width=0,height=0;
     const auto dir=std::filesystem::path(argv[11]);
     std::cout<<"READY"<<std::endl;
+    std::ofstream profile;
+    if(const char *path=std::getenv("GEMX_LIVE_PROFILE")){
+        profile.open(path);if(!profile)throw std::runtime_error("cannot open live profile");
+        profile<<"frame,context,read_ms,detector_ms,vitpose_ms,gem_decode_ms,world_skeleton_ms,camera_skeleton_ms,write_ms,total_ms\n";
+    }
+    uint64_t frame_index=0;
     std::string command;
     while(std::getline(std::cin,command)){
         if(command=="RESET"){history.clear();std::cout<<"RESET"<<std::endl;continue;}
         if(command!="FRAME")throw std::invalid_argument("invalid live command");
+        const auto started=std::chrono::steady_clock::now();auto mark=started;
+        std::array<double,7> timings{};
+        auto stage=[&](size_t i){if(!profile.is_open())return;const auto now=std::chrono::steady_clock::now();timings[i]=std::chrono::duration<double,std::milli>(now-mark).count();mark=now;};
+        auto record=[&](uint32_t context){if(profile.is_open()){profile<<frame_index<<','<<context;for(double t:timings)profile<<','<<t;
+            profile<<','<<std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count()<<'\n';}++frame_index;};
         const auto image=load_image((dir/"frame.input").string());
         if(image.width!=width||image.height!=height||std::chrono::steady_clock::now()-previous>std::chrono::seconds(2))history.clear();
         width=image.width;height=image.height;
         gemx_rgb_frame frame{image.rgb.data(),image.rgb.size(),width,height,image.stride,{}};
         std::array<gemx_detection,100> detections{};uint32_t detected=0;
+        stage(0);
         api(gemx_yolox_detect(detector.get(),&frame,.5f,.45f,detections.data(),detections.size(),&detected,error,sizeof(error)),error);
+        stage(1);
         // Upstream recreates ByteTrack each frame: largest area wins.
         std::array<float,4> box{0,0,float(width-1),float(height-1)};float area=-1;
         for(uint32_t i=0;i<detected;++i){const auto &b=detections[i].box;float a=std::max(0.f,b[2]-b[0])*std::max(0.f,b[3]-b[1]);
@@ -455,9 +468,10 @@ int live_worker(int argc,char **argv){
         observation current{};current.box={(box[0]+box[2])*.5f,(box[1]+box[3])*.5f,std::max(box[3]-box[1],(box[2]-box[0])/.75f)*1.2f};
         std::copy(current.box.begin(),current.box.end(),frame.box);
         api(gemx_vitpose_infer_rgb(pose.get(),&frame,1,current.keypoints.data(),231,error,sizeof(error)),error);
+        stage(2);
         history.push_back(current);if(history.size()>window)history.pop_front();
         const uint32_t n=history.size();
-        if(n<2){previous=std::chrono::steady_clock::now();std::cout<<"WARMUP "<<detected<<std::endl;continue;}
+        if(n<2){record(n);previous=std::chrono::steady_clock::now();std::cout<<"WARMUP "<<detected<<std::endl;continue;}
         std::vector<float> kp(n*231),boxes(n*3),K(n*9),angular(n*6);
         for(uint32_t i=0;i<n;++i){
             std::copy(history[i].keypoints.begin(),history[i].keypoints.end(),kp.begin()+i*231);
@@ -469,6 +483,7 @@ int live_worker(int argc,char **argv){
         std::vector<float> body(n*228),identity(n*45),scales(n*69),oc(n*3),tc(n*3),ow(n*3),tw(n*3);
         gemx_motion_view motion{n,body.data(),identity.data(),scales.data(),oc.data(),tc.data(),ow.data(),tw.data()};
         api(gemx_infer_motion(session.get(),&input,&motion,error,sizeof(error)),error);
+        stage(3);
         // Decode the complete context, then build ONLY its newest frame. This
         // preserves upstream's per-frame shape and gravity-aligned orientation.
         const uint32_t last=n-1;std::array<float,3> origin{};pose_sample sample;
@@ -476,11 +491,14 @@ int live_worker(int argc,char **argv){
             oc.data()+last*3,tc.data()+last*3,ow.data()+last*3,origin.data()};
         gemx_skeleton_view skeleton{1,sample.positions.data(),sample.rotations.data(),sample.parents.data(),sample.local_translations.data()};
         api(gemx_build_skeleton(session.get(),&newest,&skeleton,error,sizeof(error)),error);
+        stage(4);
         pose_sample camera_sample;newest.global_orient_world=newest.global_orient_camera;
         gemx_skeleton_view camera_skeleton{1,sample.camera_positions.data(),camera_sample.rotations.data(),nullptr,camera_sample.local_translations.data()};
         api(gemx_build_skeleton(session.get(),&newest,&camera_skeleton,error,sizeof(error)),error);
+        stage(5);
         sample.keypoints=current.keypoints;std::copy_n(newest.translation_camera,3,sample.camera.data());
         save_pose((dir/"pose.gpose").string(),sample);
+        stage(6);record(n);
         previous=std::chrono::steady_clock::now();std::cout<<"POSE "<<detected<<std::endl;
     }
     return 0;

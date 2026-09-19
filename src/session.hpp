@@ -5,6 +5,7 @@
 #include "model.hpp"
 #include "skeleton.hpp"
 #include "soma_identity.hpp"
+#include <array>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -42,5 +43,11 @@ private:
     std::vector<int32_t> soma_parents_;
     std::vector<std::string> soma_names_;
     soma_identity_constants soma_identity_;
+    // World and camera skeletons share shape; keep just the last exact fit.
+    // Protected by mutex_, like the rest of the session's mutable state.
+    mutable bool shape_cached_=false;
+    mutable std::array<float,45> cached_identity_{};
+    mutable std::array<float,69> cached_scales_{};
+    mutable soma_identity_rig cached_shape_;
 };
 }

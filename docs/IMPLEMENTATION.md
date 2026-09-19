@@ -131,3 +131,8 @@ Representative release measurements on an AMD Ryzen 9 7900 and RTX 5070 Ti:
 The main end-to-end throughput limit is the Body and ViTPose observation stage,
 so applications should batch short offline runs. Compilation is always limited
 to eight jobs.
+
+The [2026-09-19 live profile](LIVE-PROFILING.md) measures the current strict
+demo path. Exact resize coefficient reuse, contiguous Focus writes, direct
+single-frame crop preparation and a bounded exact shape cache reduce native
+frame time by 2.82%, with unchanged pose bytes in replay.

@@ -1,0 +1,304 @@
+{
+  "date": "2026-09-19",
+  "hardware": "RTX 5070 Ti, Ryzen 9 7900",
+  "cpu_affinity": "0-7",
+  "precision": "strict F32; F16/COOPMAT/COOPMAT2 disabled",
+  "source": "public NVIDIA annotated football exemplar, 480x270, 72 frames repeated three times per run",
+  "configuration": "30-frame rolling window; no Body; no frame dropping or resolution changes",
+  "runs_per_configuration": 2,
+  "input_frames_per_run": 216,
+  "steady_frames_per_run": 187,
+  "emitted_poses_per_run": 215,
+  "steady_stage_ms_before": {
+    "read_ms": {
+      "mean": 0.04358695187165776,
+      "median": 0.0418705,
+      "p95": 0.061203
+    },
+    "detector_ms": {
+      "mean": 58.42812700534759,
+      "median": 58.1609,
+      "p95": 59.85735
+    },
+    "vitpose_ms": {
+      "mean": 62.61926176470588,
+      "median": 62.617599999999996,
+      "p95": 62.85505
+    },
+    "gem_decode_ms": {
+      "mean": 3.7087579946524065,
+      "median": 3.6846050000000004,
+      "p95": 3.778235
+    },
+    "world_skeleton_ms": {
+      "mean": 0.35371332887700535,
+      "median": 0.3357555,
+      "p95": 0.4233535
+    },
+    "camera_skeleton_ms": {
+      "mean": 0.27023095454545454,
+      "median": 0.26176299999999997,
+      "p95": 0.34379000000000004
+    },
+    "write_ms": {
+      "mean": 0.21941540106951873,
+      "median": 0.17939,
+      "p95": 0.222047
+    },
+    "total_ms": {
+      "mean": 125.65246256684492,
+      "median": 125.343,
+      "p95": 127.5025
+    }
+  },
+  "steady_stage_ms_after": {
+    "read_ms": {
+      "mean": 0.03795568181818182,
+      "median": 0.035418000000000005,
+      "p95": 0.056188
+    },
+    "detector_ms": {
+      "mean": 55.3169513368984,
+      "median": 55.2079,
+      "p95": 55.91215
+    },
+    "vitpose_ms": {
+      "mean": 62.464177005347594,
+      "median": 62.429950000000005,
+      "p95": 62.7342
+    },
+    "gem_decode_ms": {
+      "mean": 3.7028588770053474,
+      "median": 3.6816500000000003,
+      "p95": 3.775045
+    },
+    "world_skeleton_ms": {
+      "mean": 0.3497630267379679,
+      "median": 0.33321100000000003,
+      "p95": 0.428935
+    },
+    "camera_skeleton_ms": {
+      "mean": 0.0071088609625668455,
+      "median": 0.0067875,
+      "p95": 0.009092
+    },
+    "write_ms": {
+      "mean": 0.2220602139037433,
+      "median": 0.1875205,
+      "p95": 0.2280485
+    },
+    "total_ms": {
+      "mean": 122.11016042780749,
+      "median": 121.9615,
+      "p95": 123.3835
+    }
+  },
+  "native_frame_time_reduction_percent": 2.819126714013256,
+  "worker_frames_per_second_before": 7.958459226121553,
+  "worker_frames_per_second_after": 8.189326723481033,
+  "all_pose_bytes_identical": true,
+  "pose_hash_list_sha256": "9f96373c351f7909caed24a30bf2df1ea0d517abd4a673a37860ba3d1fb92ce3",
+  "preprocess": [
+    {
+      "width": 480,
+      "height": 270,
+      "baseline_median_ms": 7.07020447589457,
+      "candidate_median_ms": 3.403316717594862,
+      "byte_identical": true
+    },
+    {
+      "width": 960,
+      "height": 540,
+      "baseline_median_ms": 5.763813620433211,
+      "candidate_median_ms": 2.8011039830744267,
+      "byte_identical": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "baseline_median_ms": 5.8494380209594965,
+      "candidate_median_ms": 2.7977630961686373,
+      "byte_identical": true
+    },
+    {
+      "width": 317,
+      "height": 191,
+      "baseline_median_ms": 5.954670021310449,
+      "candidate_median_ms": 2.8718500398099422,
+      "byte_identical": true
+    },
+    {
+      "width": 641,
+      "height": 359,
+      "baseline_median_ms": 5.736505845561624,
+      "candidate_median_ms": 2.7612519916146994,
+      "byte_identical": true
+    },
+    {
+      "width": 13,
+      "height": 7,
+      "baseline_median_ms": 5.537092452868819,
+      "candidate_median_ms": 2.6904514525085688,
+      "byte_identical": true
+    },
+    {
+      "width": 1,
+      "height": 1,
+      "baseline_median_ms": 7.204532623291016,
+      "candidate_median_ms": 4.01459145359695,
+      "byte_identical": true
+    },
+    {
+      "width": 1,
+      "height": 640,
+      "baseline_median_ms": 2.5857901200652122,
+      "candidate_median_ms": 0.6069221999496222,
+      "byte_identical": true
+    },
+    {
+      "width": 640,
+      "height": 1,
+      "baseline_median_ms": 2.533754799515009,
+      "candidate_median_ms": 1.1225524358451366,
+      "byte_identical": true
+    },
+    {
+      "width": 1372,
+      "height": 325,
+      "baseline_median_ms": 3.9253649301826954,
+      "candidate_median_ms": 1.787165179848671,
+      "byte_identical": true
+    },
+    {
+      "width": 1268,
+      "height": 888,
+      "baseline_median_ms": 6.485651014372706,
+      "candidate_median_ms": 3.297969466075301,
+      "byte_identical": true
+    },
+    {
+      "width": 835,
+      "height": 409,
+      "baseline_median_ms": 5.26063609868288,
+      "candidate_median_ms": 2.5066433008760214,
+      "byte_identical": true
+    },
+    {
+      "width": 250,
+      "height": 745,
+      "baseline_median_ms": 4.39952639862895,
+      "candidate_median_ms": 1.7194799147546291,
+      "byte_identical": true
+    },
+    {
+      "width": 423,
+      "height": 531,
+      "baseline_median_ms": 7.090809056535363,
+      "candidate_median_ms": 3.3481197897344828,
+      "byte_identical": true
+    },
+    {
+      "width": 168,
+      "height": 270,
+      "baseline_median_ms": 6.070558447390795,
+      "candidate_median_ms": 2.753431908786297,
+      "byte_identical": true
+    },
+    {
+      "width": 304,
+      "height": 903,
+      "baseline_median_ms": 4.441246623173356,
+      "candidate_median_ms": 1.7695811111479998,
+      "byte_identical": true
+    },
+    {
+      "width": 636,
+      "height": 1324,
+      "baseline_median_ms": 5.315852351486683,
+      "candidate_median_ms": 2.320570405572653,
+      "byte_identical": true
+    },
+    {
+      "width": 1205,
+      "height": 724,
+      "baseline_median_ms": 6.008097901940346,
+      "candidate_median_ms": 2.914807526394725,
+      "byte_identical": true
+    },
+    {
+      "width": 1370,
+      "height": 1369,
+      "baseline_median_ms": 8.35062493570149,
+      "candidate_median_ms": 4.201820818707347,
+      "byte_identical": true
+    },
+    {
+      "width": 240,
+      "height": 998,
+      "baseline_median_ms": 3.893453860655427,
+      "candidate_median_ms": 1.4510690234601498,
+      "byte_identical": true
+    },
+    {
+      "width": 861,
+      "height": 914,
+      "baseline_median_ms": 7.960916729643941,
+      "candidate_median_ms": 3.964885603636503,
+      "byte_identical": true
+    },
+    {
+      "width": 1301,
+      "height": 781,
+      "baseline_median_ms": 5.991961574181914,
+      "candidate_median_ms": 2.9162906575948,
+      "byte_identical": true
+    },
+    {
+      "width": 989,
+      "height": 220,
+      "baseline_median_ms": 3.861647332087159,
+      "candidate_median_ms": 1.7529642209410667,
+      "byte_identical": true
+    },
+    {
+      "width": 714,
+      "height": 1110,
+      "baseline_median_ms": 6.203613942489028,
+      "candidate_median_ms": 2.8740440029650927,
+      "byte_identical": true
+    },
+    {
+      "width": 485,
+      "height": 950,
+      "baseline_median_ms": 5.4476705845445395,
+      "candidate_median_ms": 2.384778345003724,
+      "byte_identical": true
+    }
+  ],
+  "limits": [
+    "Not physical camera latency or a multi-video quality evaluation.",
+    "Stages include CPU preparation, GPU synchronization and transfers.",
+    "Median/p95 entries are averages of per-run summaries."
+  ],
+  "devroute_http": {
+    "poses": 71,
+    "keypoint_component_max": 0.0,
+    "joint_max_metres": 0.0,
+    "mean_http_seconds": 0.1356094435552581,
+    "p95_http_seconds": 0.13748223707079887,
+    "mean_native_seconds": 0.12225352112676058,
+    "mean_other_http_seconds": 0.01335592242849755,
+    "note": "Lossless frame HTTP replay, not physical camera latency; strict F32."
+  },
+  "devroute_browser": {
+    "poses": 33,
+    "maxPending": 1,
+    "status": "Live \u00b7 keep your whole body in view",
+    "metrics": "7.4 fps \u00b7 131 ms frame age \u00b7 122 ms inference \u00b7 30-frame context",
+    "hasStream": true,
+    "restart": true,
+    "offline_switch": true,
+    "permission_error_recovery": true,
+    "browser_exceptions": []
+  }
+}

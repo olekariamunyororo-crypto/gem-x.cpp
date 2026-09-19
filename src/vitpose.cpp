@@ -231,11 +231,13 @@ void vitpose::infer_normalized(const float *images,uint32_t batch,float *heatmap
 void vitpose::infer_rgb(const gemx_rgb_frame *frames,uint32_t count,float *keypoints){
     require(frames && keypoints && count>=1 && count<=4,"ViTPose RGB frame count must be in 1..4");
     std::vector<std::future<std::vector<float>>> work;work.reserve(count);
-    for(uint32_t i=0;i<count;++i)work.push_back(std::async(std::launch::async,[&,i]{return prepare_frame(frames[i]);}));
+    // A single live crop has no parallel preparation to overlap. Avoid spawning
+    // and joining a thread for every camera frame; keep offline batch parallelism.
+    for(uint32_t i=0;count>1 && i<count;++i)work.push_back(std::async(std::launch::async,[&,i]{return prepare_frame(frames[i]);}));
     const uint64_t image_elements=3*image_height*image_width;
     std::vector<float> images(uint64_t(count)*2*image_elements);
     for(uint32_t frame=0;frame<count;++frame){
-        auto image=work[frame].get();std::copy(image.begin(),image.end(),images.begin()+uint64_t(frame)*2*image_elements);
+        auto image=count==1?prepare_frame(frames[frame]):work[frame].get();std::copy(image.begin(),image.end(),images.begin()+uint64_t(frame)*2*image_elements);
         auto *flipped=images.data()+(uint64_t(frame)*2+1)*image_elements;
         for(int c=0;c<3;++c)for(int y=0;y<image_height;++y)for(int x=0;x<image_width;++x)
             flipped[(c*image_height+y)*image_width+x]=image[(c*image_height+y)*image_width+(image_width-1-x)];

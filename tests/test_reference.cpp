@@ -1,5 +1,6 @@
 #include "gemx.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -191,6 +192,25 @@ int main(int argc,char **argv){
         status=gemx_build_skeleton(session.get(),&decoded,&skeleton,message,sizeof(message));
         if(status!=GEMX_OK)throw std::runtime_error(std::string("build skeleton: ")+message);
         require_finite(positions,"skeleton positions");require_finite(rotations,"skeleton rotations");
+        // Repeated views reuse shape, but every identity/global/local scale
+        // change must invalidate it. Restoring inputs must restore exact bytes.
+        const auto original_positions=positions;
+        for(const auto &[parameter,count]:std::array<std::pair<float *,size_t>,3>{{
+                {identity.data(),45},{scales.data(),1},{scales.data()+1,68}}}){
+            const std::vector<float> old(parameter,parameter+count);
+            for(size_t i=0;i<count;++i)parameter[i]+=.25f;
+            status=gemx_build_skeleton(session.get(),&decoded,&skeleton,message,sizeof(message));
+            if(status!=GEMX_OK || positions==original_positions)
+                throw std::runtime_error("skeleton shape change was not applied");
+            const auto changed_positions=positions;
+            status=gemx_build_skeleton(session.get(),&decoded,&skeleton,message,sizeof(message));
+            if(status!=GEMX_OK || positions!=changed_positions)
+                throw std::runtime_error("repeated skeleton shape changed output");
+            std::copy(old.begin(),old.end(),parameter);
+            status=gemx_build_skeleton(session.get(),&decoded,&skeleton,message,sizeof(message));
+            if(status!=GEMX_OK || std::memcmp(positions.data(),original_positions.data(),positions.size()*sizeof(float)))
+                throw std::runtime_error("restored skeleton shape changed output");
+        }
         if(parents[0]!=-1)throw std::runtime_error("SOMA Hips must be the root");
         for(uint32_t joint=1;joint<77;++joint)
             if(parents[joint]<0 || parents[joint]>=static_cast<int32_t>(joint))
