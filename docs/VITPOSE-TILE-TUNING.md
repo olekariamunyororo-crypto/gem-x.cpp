@@ -1,5 +1,8 @@
 # ViTPose F32 tile tuning — 2026-09-19
 
+Follow-up: [hardware counters and warp-stall analysis](VITPOSE-STALL-ANALYSIS.md)
+measure the occupancy improvement and distinguish bandwidth from latency limits.
+
 The accepted change selects GGML's existing **32×32 tiles for the feed-forward
 gate/up and attention output projections** in live ViTPose. The combined
 experiment reduces normalized inference from 62.06 to 54.77 ms (**11.75%**),
