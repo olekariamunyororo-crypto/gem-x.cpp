@@ -83,6 +83,10 @@ existing evidence in [the parity report](LIVE-OFFLINE-PARITY.md).
 
 ## Remaining optimization targets
 
+The subsequent [ViTPose operation profile](VITPOSE-PROFILING.md) identifies
+feed-forward F32 matrix multiplications as its largest cost and distinguishes
+GPU activity, arithmetic throughput and host completion polling.
+
 1. **Detector and ViTPose execution:** together about 117.8 ms, over 96% of
    native time. Next useful work is Vulkan per-operation profiling of F32
    convolution/im2col, attention and matrix multiplication. Require unchanged
