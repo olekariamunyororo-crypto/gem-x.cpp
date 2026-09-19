@@ -8,17 +8,89 @@
     "soma_revision": "e0f8ff0ecfa3edbbb6058b1e0f08822ee2f84ee5",
     "motion_stats_sha256": "dafe4ef6a62e824b0b325f54e42d508015785509bc478ef76e4208ae1f95ba7c"
   },
+  "official_demo": {
+    "note": "NVIDIA publishes rendered GIFs, not the clean source video or numeric outputs. The keypoint GIF can be used as an annotated 72-frame smoke-test input, but it is not pixel-identical to the source used for the published renders.",
+    "demo_2d_keypoints.gif": {
+      "bytes": 5638315,
+      "frames": 72,
+      "fps": 10,
+      "sha256": "b3c34367565c5ad770b77107d8cf39144d5a4a84ce758957341a2d4c87e25aef"
+    },
+    "demo_global_mesh.gif": {
+      "bytes": 1867225,
+      "frames": 72,
+      "fps": 10,
+      "sha256": "7513f7b7a95113140ba77986c1141e26fe22d8612602b440eb4d94005594f766"
+    },
+    "demo_incam_mesh.gif": {
+      "bytes": 5611379,
+      "frames": 72,
+      "fps": 10,
+      "sha256": "b18e198b5f26ad521e70e9c069fe73817115b81a6e0b8a285492e85f381668ee"
+    }
+  },
+  "paired_e2e": {
+    "note": "Historical shared-input diagnostic: upstream reused native boxes/keypoints. Not independent end-to-end evidence. See docs/LIVE-OFFLINE-PARITY.md for the independent rerun.",
+    "input_exact.mkv": {
+      "bytes": 12805076,
+      "frames": 72,
+      "fps": 10,
+      "sha256": "b7e2cff0f477d28267589fc04052aef311e362d8febf62527a0c97cf68c18d89"
+    },
+    "hpe_results.pt": {
+      "bytes": 1003741,
+      "sha256": "02cd65e619b722443adaee7d73bcabf044b55ce5454b184cbab7868fdbbf98eb"
+    },
+    "input_exact_1_incam.mp4": {
+      "bytes": 797469,
+      "sha256": "393d388153c2e54f80cb99725540faa7759326dc4bc7f75fdb7b800fb5db5324"
+    },
+    "input_exact_2_global.mp4": {
+      "bytes": 100921,
+      "sha256": "08e58508920de81b985fadff75e627008a44a6a9a1df939df143333d00ed6d76"
+    }
+  },
   "models": {
     "repository": "https://huggingface.co/nvidia/GEM-X",
     "revision": "5ccf5ca3746c3620aa4016114f069a5f6ae399cd",
-    "gem_soma.ckpt": {"bytes": 541758499, "sha256": "4c1f85ca8c1e11e6588aead49fbc024bf660708def670043e0b537c101ee298e"},
-    "onnx/gem_denoiser.onnx": {"bytes": 1508810, "sha256": "20aab83c01bbd909a258ad0fa465458eda382c63dc80d56952b2ec952d6e192c"},
-    "onnx/gem_denoiser.onnx.data": {"bytes": 199114752, "sha256": "720c2400281b730574bf2a446c33ecd77bf494ac8161b081b09bb122b9fad2f8"},
-    "onnx/vitpose.onnx": {"bytes": 4279801, "sha256": "0982dbf4f1e8a48446a6fe35329711522b60210cce2a7499ca6ab93458c87f34"},
-    "onnx/vitpose.onnx.data": {"bytes": 3389390848, "sha256": "b20ba3077ba2341d76c16dde3e58d3b37c66c3b0ec8346901a8bac14319e20fe"},
-    "scale_comps.pth": {"bytes": 8816, "sha256": "4c4861384b176fbe3d3bd7480e87ff8161f19553bf6ec1b718bc9b6bbb559cd6"},
-    "scale_mean.pth": {"bytes": 1451, "sha256": "f696a0793217f27fcf23fa1fd63e8a34aa74ef64580078698fb9ea7322ce2891"},
-    "SOMA_neutral.npz": {"repository": "https://huggingface.co/nvidia/SOMA-X", "revision": "466879a", "bytes": 27488638, "sha256": "515f7d5bb74be4e370e9adf5e779760ec3581556374c0b33212a32d13ab3b53f"}
+    "gem_soma.ckpt": {
+      "bytes": 541758499,
+      "sha256": "4c1f85ca8c1e11e6588aead49fbc024bf660708def670043e0b537c101ee298e"
+    },
+    "onnx/gem_denoiser.onnx": {
+      "bytes": 1508810,
+      "sha256": "20aab83c01bbd909a258ad0fa465458eda382c63dc80d56952b2ec952d6e192c"
+    },
+    "onnx/gem_denoiser.onnx.data": {
+      "bytes": 199114752,
+      "sha256": "720c2400281b730574bf2a446c33ecd77bf494ac8161b081b09bb122b9fad2f8"
+    },
+    "onnx/vitpose.onnx": {
+      "bytes": 4279801,
+      "sha256": "0982dbf4f1e8a48446a6fe35329711522b60210cce2a7499ca6ab93458c87f34"
+    },
+    "onnx/vitpose.onnx.data": {
+      "bytes": 3389390848,
+      "sha256": "b20ba3077ba2341d76c16dde3e58d3b37c66c3b0ec8346901a8bac14319e20fe"
+    },
+    "scale_comps.pth": {
+      "bytes": 8816,
+      "sha256": "4c4861384b176fbe3d3bd7480e87ff8161f19553bf6ec1b718bc9b6bbb559cd6"
+    },
+    "scale_mean.pth": {
+      "bytes": 1451,
+      "sha256": "f696a0793217f27fcf23fa1fd63e8a34aa74ef64580078698fb9ea7322ce2891"
+    },
+    "SOMA_neutral.npz": {
+      "repository": "https://huggingface.co/nvidia/SOMA-X",
+      "revision": "466879a",
+      "bytes": 27488638,
+      "sha256": "515f7d5bb74be4e370e9adf5e779760ec3581556374c0b33212a32d13ab3b53f"
+    },
+    "onnx/gem_denoiser_no_imgfeat.onnx": {
+      "bytes": 187936462,
+      "sha256": "65c576968bc9548b5c485522930b7985097b70a5e0154e5cd01241d6c806415f"
+    }
   },
   "detector": {
     "model": "YOLOX-X HumanArt a39d44ed",
@@ -29,5 +101,20 @@
     "onnx_member": "20230928/yolox_onnx/yolox_x_8xb8-300e_humanart-a39d44ed/end2end.onnx",
     "onnx_bytes": 396283264,
     "onnx_sha256": "8e9ea96a176bd48501eaaa77216e49ee30794d2f8ba80c7b9862beca4ea972da"
+  },
+  "live_example": {
+    "url": "https://raw.githubusercontent.com/NVlabs/GR00T-WholeBodyControl/main/gear_sonic/examples/live_camera_teleop/webcam_stream.py",
+    "captured": "2026-09-18",
+    "sha256": "0342737f98302918e5fe10ca9536e08196277e2969845cf47608f60c0ae66fe2"
+  },
+  "regression_fixtures": {
+    "gem_contact_reference.bin": {
+      "bytes": 168492,
+      "sha256": "1127ad8ebf4686c66ff942a3fa8fb6c1977b50733dfec60b40dae65d444f9b23"
+    },
+    "gem_live_reference.bin": {
+      "bytes": 332388,
+      "sha256": "a1127cd8a876c2b9c68158eb0383f707be95eab20d6afee6241ca901bd37aee4"
+    }
   }
 }

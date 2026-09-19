@@ -16,6 +16,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +38,7 @@ type config struct {
 	device, threads                                                    int
 	maxJobs                                                            int
 	bf16                                                               bool
+	strict, contacts                                                   bool
 }
 
 type job struct {
@@ -56,6 +58,9 @@ type job struct {
 
 type app struct {
 	cfg    config
+	gpu    sync.Mutex
+	liveMu sync.Mutex
+	live   *liveSession
 	mu     sync.Mutex
 	upload sync.Mutex
 	jobs   map[string]*job
@@ -228,6 +233,10 @@ func (a *app) status(w http.ResponseWriter, id string) {
 func (a *app) route(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) >= 2 && parts[0] == "api" && parts[1] == "live" {
+		a.liveRoute(w, r, parts)
+		return
+	}
 	if r.URL.Path == "/api/jobs" && r.Method == http.MethodPost {
 		a.create(w, r)
 		return
@@ -274,7 +283,9 @@ func load(c config) (*app, error) {
 		if err != nil {
 			return nil, err
 		}
-		if info, err := os.Stat(absolute); err != nil || info.IsDir() {
+		// Body assets are only needed when an offline job actually runs.
+		bodyAsset := name == "body-runner" || name == "body-module" || name == "backbone" || name == "branch" || name == "mhr"
+		if info, err := os.Stat(absolute); !bodyAsset && (err != nil || info.IsDir()) {
 			return nil, fmt.Errorf("%s file is unavailable: %s", name, absolute)
 		}
 		switch name {
@@ -328,11 +339,12 @@ func load(c config) (*app, error) {
 }
 
 func main() {
+	runtime.GOMAXPROCS(8)
 	var c config
 	flag.StringVar(&c.addr, "listen", "127.0.0.1:8098", "HTTP listen address")
 	flag.StringVar(&c.data, "data", "generated/demo", "job directory")
 	flag.StringVar(&c.pipeline, "pipeline", "build/vulkan/gemx-pipeline", "GEM-X pipeline executable")
-	flag.StringVar(&c.denoiser, "denoiser", "generated/reference/gem-x-f32.gguf", "GEM-X temporal model")
+	flag.StringVar(&c.denoiser, "denoiser", "generated/reference/gem-x-contact-f32.gguf", "GEM-X temporal model (convert with --checkpoint for contact support)")
 	flag.StringVar(&c.vitpose, "vitpose", "generated/reference/vitpose-f32.gguf", "ViTPose model")
 	flag.StringVar(&c.yolox, "yolox", "generated/reference/yolox-f32.gguf", "YOLOX model")
 	flag.StringVar(&c.module, "module", "build/vulkan/bin/libggml-vulkan.so", "GEM-X GGML backend module")
@@ -346,7 +358,9 @@ func main() {
 	flag.IntVar(&c.device, "device", 0, "backend device")
 	flag.IntVar(&c.threads, "threads", 8, "CPU threads, maximum 8")
 	flag.IntVar(&c.maxJobs, "max-jobs", 20, "maximum retained jobs")
-	flag.BoolVar(&c.bf16, "bf16", true, "use BF16 SAM3D Body backbone")
+	flag.BoolVar(&c.bf16, "bf16", false, "use approximate BF16 SAM3D Body backbone")
+	flag.BoolVar(&c.strict, "strict", true, "use strict F32 Vulkan inference for detector, ViTPose and GEM")
+	flag.BoolVar(&c.contacts, "contacts", true, "apply upstream offline contact correction, grounding and IK")
 	flag.Parse()
 	a, err := load(c)
 	if err != nil {
@@ -362,11 +376,12 @@ func main() {
 	server := &http.Server{Addr: c.addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 30 * time.Minute, IdleTimeout: 60 * time.Second}
 	go func() {
 		<-ctx.Done()
+		a.stopLive()
 		shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer shutdownCancel()
 		_ = server.Shutdown(shutdownContext)
 	}()
-	log.Printf("GEM-X offline demo listening on http://%s", c.addr)
+	log.Printf("GEM-X live/offline demo listening on http://%s", c.addr)
 	if err = server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}

@@ -18,7 +18,8 @@ model::model(const std::string &path,ggml_backend_buffer_type_t buffer_type,
                 u32("gemx.attention.head_count")==8 && u32("gemx.motion_length")==585,
                 "unsupported GEM-X model architecture");
     const size_t count=static_cast<size_t>(gguf_get_n_tensors(gguf_));
-    require(count==expected_tensors,"unexpected GGUF tensor count");
+    require(count==expected_tensors || (architecture=="gemx" && (count==247 || count==251)),
+            "unexpected GGUF tensor count");
     for(size_t i=0;i<count;++i){
         const char *name=gguf_get_tensor_name(gguf_,i);
         auto *value=ggml_get_tensor(context_,name);

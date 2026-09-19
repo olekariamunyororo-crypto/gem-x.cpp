@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 
 namespace gemx { namespace {
 using matrix=std::array<float,9>;
@@ -109,7 +110,9 @@ void session::decode(const gemx_sequence_view &input,const float *normalized,con
             store(matrix_axis_angle(rotation6(source+joint*6)),output.body_pose+(uint64_t(frame)*76+joint)*3);
         std::copy_n(source+456,45,output.identity_coeffs+uint64_t(frame)*45);
         std::copy_n(source+501,69,output.scale_params+uint64_t(frame)*69);
-        output.scale_params[uint64_t(frame)*69]=std::clamp(output.scale_params[uint64_t(frame)*69],.7f,1.f);
+        // The offline demo clamps global scale; the live webcam decoder does
+        // not. Preserve the released live output before SOMA-to-SMPL mapping.
+        if(!live_)output.scale_params[uint64_t(frame)*69]=std::clamp(output.scale_params[uint64_t(frame)*69],.7f,1.f);
         rotation_camera[frame]=rotation6(source+570);orient_camera[frame]=matrix_axis_angle(rotation_camera[frame]);
         rotation_gravity[frame]=rotation6(source+576);orient_gravity[frame]=matrix_axis_angle(rotation_gravity[frame]);
         store(orient_camera[frame],output.global_orient_camera+uint64_t(frame)*3);
@@ -151,6 +154,111 @@ void session::decode(const gemx_sequence_view &input,const float *normalized,con
         vector delta=multiply(world_rotation[frame-1],local_velocity);
         for(int i=0;i<3;++i)translation[i]+=delta[i];
         store(translation,output.translation_world+uint64_t(frame)*3);
+    }
+}
+
+void session::refine_contacts(const gemx_motion_view &motion,const float *contacts) const{
+    require(!live_,"contact refinement is an offline operation");
+    require(motion.frames>=1 && motion.frames<=GEMX_MAX_FRAMES && contacts && motion.body_pose &&
+            motion.identity_coeffs && motion.scale_params && motion.global_orient_world &&
+            motion.translation_world,"complete world motion and contacts required");
+    const uint32_t frames=motion.frames;
+    for(uint64_t i=0;i<uint64_t(frames)*6;++i)require(finite(contacts[i]),"finite contact logits required");
+    for(uint32_t f=0;f<frames;++f){
+        for(uint32_t j=0;j<228;++j)require(finite(motion.body_pose[uint64_t(f)*228+j]),"finite pose required");
+        for(uint32_t j=0;j<3;++j)require(finite(motion.global_orient_world[uint64_t(f)*3+j]) &&
+            finite(motion.translation_world[uint64_t(f)*3+j]),"finite root motion required");
+    }
+    // Upstream EnDecoder.fk_v2 builds a zero-pose SOMA skeleton, then applies
+    // the raw axis-angle local rotations to its parent-relative offsets.
+    // This is intentionally distinct from SOMA's bind-orientation-aware pose().
+    std::vector<float> zero_pose(uint64_t(frames)*228),zero_root(uint64_t(frames)*3);
+    auto rest_motion=motion;rest_motion.body_pose=zero_pose.data();
+    rest_motion.global_orient_world=zero_root.data();rest_motion.translation_world=zero_root.data();
+    auto rest=skeleton(rest_motion);
+    using joints=std::array<vector,77>;
+    using rotations=std::array<matrix,77>;
+    joints offsets{};
+    for(uint32_t j=0;j<77;++j)for(int a=0;a<3;++a){
+        offsets[j][a]=rest.positions[j*3+a];
+        if(rest.parents[j]>=0)offsets[j][a]-=rest.positions[rest.parents[j]*3+a];
+    }
+    auto add=[](vector a,const vector &b){for(int i=0;i<3;++i)a[i]+=b[i];return a;};
+    auto sub=[](vector a,const vector &b){for(int i=0;i<3;++i)a[i]-=b[i];return a;};
+    auto cross=[](const vector &a,const vector &b){return vector{
+        a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]};};
+    auto fk=[&](const rotations &local,const vector &translation,rotations &world,joints &positions){
+        for(uint32_t j=0;j<77;++j){const int parent=rest.parents[j];
+            if(parent<0){world[j]=local[j];positions[j]=add(offsets[j],translation);}
+            else{world[j]=multiply(world[parent],local[j]);positions[j]=add(positions[parent],multiply(world[parent],offsets[j]));}
+        }
+    };
+    std::vector<rotations> local(frames),world(frames);
+    std::vector<joints> positions(frames);
+    std::vector<vector> original(frames),corrected(frames);
+    for(uint32_t f=0;f<frames;++f){
+        std::copy_n(motion.translation_world+uint64_t(f)*3,3,original[f].begin());
+        for(uint32_t j=0;j<77;++j){const float *v=j?motion.body_pose+uint64_t(f)*228+(j-1)*3:
+                motion.global_orient_world+uint64_t(f)*3;
+            local[f][j]=axis_angle_matrix({v[0],v[1],v[2]});}
+        fk(local[f],original[f],world[f],positions[f]);
+    }
+    constexpr std::array<int,6> ids{69,70,74,75,14,42};
+    corrected[0]=original[0];
+    for(uint32_t f=1;f<frames;++f){
+        float maximum=-1e30f,total=0;std::array<float,6> weights{};
+        for(int j=0;j<6;++j)if(contacts[(f-1)*6+j]>0)maximum=std::max(maximum,contacts[(f-1)*6+j]);
+        for(int j=0;j<6;++j)if(contacts[(f-1)*6+j]>0){weights[j]=std::exp(contacts[(f-1)*6+j]-maximum);total+=weights[j];}
+        vector correction{};
+        if(total>0)for(int j=0;j<6;++j)for(int a=0;a<3;++a)
+            correction[a]+=(positions[f][ids[j]][a]-positions[f-1][ids[j]][a])*(weights[j]/total);
+        corrected[f]=sub(add(corrected[f-1],sub(original[f],original[f-1])),correction);
+    }
+    auto smoothed=gaussian_smooth(corrected);
+    float ground=std::numeric_limits<float>::infinity();
+    for(uint32_t f=0;f<frames;++f){
+        corrected[f][0]=smoothed[f][0];corrected[f][2]=smoothed[f][2];
+        for(int j=0;j<77;++j)ground=std::min(ground,positions[f][j][1]-original[f][1]+corrected[f][1]);
+    }
+    for(uint32_t f=0;f<frames;++f){
+        corrected[f][1]-=ground;
+        fk(local[f],corrected[f],world[f],positions[f]);
+    }
+    auto targets=positions;
+    for(uint32_t f=1;f<frames;++f)for(int j=0;j<6;++j){
+        const float confidence=1.f/(1.f+std::exp(-contacts[(f-1)*6+j]));
+        for(int a=0;a<3;++a)targets[f][ids[j]][a]=targets[f-1][ids[j]][a]*confidence+positions[f][ids[j]][a]*(1-confidence);
+    }
+    constexpr std::array<std::array<int,5>,4> chains{{{0,67,68,69,70},{0,72,73,74,75},{3,11,12,13,14},{3,39,40,41,42}}};
+    for(uint32_t f=0;f<frames;++f){
+        for(uint32_t chain_index=0;chain_index<chains.size();++chain_index){
+            const auto &chain=chains[chain_index];const int target=chain_index<2?3:4;
+            // CCD_IK optimizes chain indices 1..3 in order, twice. The root
+            // stays fixed; foot chains target their ankle (not the toe).
+            for(int iteration=0;iteration<2;++iteration)for(int i=1;i<target;++i){
+                const int joint=chain[i],end=chain[target];
+                const vector from=sub(positions[f][end],positions[f][joint]);
+                const vector to=sub(targets[f][end],positions[f][joint]);
+                vector axis=cross(from,to);
+                float w=norm(from)*norm(to)+from[0]*to[0]+from[1]*to[1]+from[2]*to[2];
+                if(norm(axis)==0 && std::abs(w)<=1e-4f)axis={0,1,0};
+                float qnorm=std::max(std::sqrt(w*w+axis[0]*axis[0]+axis[1]*axis[1]+axis[2]*axis[2]),1e-8f);
+                w/=qnorm;for(float &a:axis)a/=qnorm;
+                const float angle=2*std::acos(std::clamp(w,-1.f,1.f))*float(i+1)/5.f;
+                axis=normalize_vector(axis,1e-8f);for(float &a:axis)a*=angle;
+                auto solved=multiply(axis_angle_matrix(axis),world[f][joint]);
+                auto x=normalize_vector({solved[0],solved[3],solved[6]});
+                auto y=normalize_vector({solved[1],solved[4],solved[7]});auto z=cross(x,y);
+                solved={x[0],y[0],z[0],x[1],y[1],z[1],x[2],y[2],z[2]};
+                local[f][joint]=multiply(transpose(world[f][rest.parents[joint]]),solved);
+                fk(local[f],corrected[f],world[f],positions[f]);
+            }
+        }
+    }
+    // Commit only after all input validation and computation succeeds.
+    for(uint32_t f=0;f<frames;++f){
+        store(corrected[f],motion.translation_world+uint64_t(f)*3);
+        for(uint32_t j=1;j<77;++j)store(matrix_axis_angle(local[f][j]),motion.body_pose+uint64_t(f)*228+(j-1)*3);
     }
 }
 

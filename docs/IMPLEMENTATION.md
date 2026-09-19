@@ -41,8 +41,10 @@ ONNX or checkpoint payload is interpreted.
    complete offline sequences, and skeleton animation export. The standalone
    `gem-x.cpp` demo records or uploads a
    complete clip, applies upstream-style dominant-track selection, gap filling,
-   and symmetric smoothing, and then exports its animated skeleton. GEM-X is no
-   longer exposed inside the `sam3d.cpp` demo.
+   and symmetric smoothing. Its result view overlays the camera-space 3D
+   skeleton and ViTPose observations on the synchronized source frame, retains
+   a global-motion view, and exports the animated skeleton. GEM-X is no longer
+   exposed inside the `sam3d.cpp` demo.
 8. The measured obvious optimizations are implemented: batch 1..8 ViTPose
    graphs, original/flip fusion, parallel RGB crop preparation for up to four
    source frames, bounded graph caches, and batched offline inference that
@@ -54,11 +56,11 @@ CPU learned outputs are compared closely enough to detect changed arithmetic,
 layout, preprocessing, or tensor mapping. The default Vulkan fast path permits
 accumulated reduced-precision error while checking final decoded motion and the
 SOMA skeleton. Current denoiser maxima against upstream are `0.00118` raw and
-`0.000608 m` at the skeleton. ViTPose heatmaps differ by at most `0.00136`.
+`0.000570 m` at the skeleton. ViTPose heatmaps differ by at most `0.001263`.
 
 Heatmap argmax is discontinuous: a small reduced-precision heatmap change can
 select a neighboring peak. In the reference image this affects four of 77
-joints by more than one pixel, all within 6.45 px, with the worst at the
+joints by more than one pixel, all within 2.04 px, with the worst at the
 low-confidence `RightHandIndexEnd`. This divergence is recorded rather than
 hidden by a looser heatmap comparison. Disabling Vulkan F16 and cooperative
 matrix paths yields maximum heatmap and keypoint errors below `1e-6`.
@@ -68,11 +70,11 @@ matrix paths yields maximum heatmap and keypoint errors below `1e-6`.
 | Boundary | Evidence | Status |
 |---|---|---|
 | GEM raw heads, identical input tensors, L=1/2/16/30/120 | Official ONNX fixture vs native CPU/Vulkan | Covered |
-| Published motion postprocess and SOMA forward kinematics | Official Python fixture vs native CPU/Vulkan | Covered |
+| Motion decoding and SOMA forward kinematics | Actual configured upstream decoder vs native CPU/Vulkan | Covered; contact/IK/grounding now covered by actual upstream fixture |
 | ViTPose and YOLOX, fixed input images | Official ONNX outputs vs native CPU/Vulkan | Covered, with documented reduced-precision peak movement |
 | SAM 3D Body 1024-value token, standard F32 path | Captured upstream CUDA tensor vs native Vulkan tensor | Covered on the captured exemplar |
-| Default demo SAM 3D Body token | BF16 encoder vs upstream/captured F32 token | Approximate |
-| Complete real video through detection, Body, ViTPose, GEM and rendering | Native standalone demo smoke-tested; no paired upstream/native video exemplar yet | Structurally covered; numerical/visual parity not established |
+| Default demo SAM 3D Body token | Strict F32 encoder | Independent video residuals documented below |
+| Independent 72-frame video pipeline | Fresh upstream/native detections, observations and decoded skeletons | Strict F32 mean pelvis-relative error 0.877 mm offline, 0.984 mm live; see current audit |
 | Sequences longer than 120 frames | Consecutive native windows vs upstream local attention | Not established at boundaries |
 
 On the current Body exemplar, the standard BF16 pose token differs from the
@@ -88,6 +90,31 @@ The offline demo follows upstream's 192:256, 1.2x detector-box conversion for
 both ViTPose and SAM 3D Body, uses upstream's `max(width,height)` default
 intrinsics for GEM conditions, chooses the dominant track, interpolates gaps,
 and smooths boxes after reading the complete clip.
+
+The [live/offline parity report](LIVE-OFFLINE-PARITY.md) records the current
+independent comparison, numerical limits and reproduction commands. The old
+`input_exact` reference reused native boxes/keypoints and is only a shared-input
+diagnostic. Current independent results include native detector, ViTPose and
+Body observations, with contact correction enabled offline and Body omitted live.
+
+The audit corrected decoder statistics, ViTPose channel order, YOLOX resize
+and hidden F16 im2col rounding, and preserved canonical float32 observation
+boxes. Upstream OpenCV 4.11.0.86 is required for the reference crop semantics.
+Contact correction, IK and grounding are now implemented. The live API follows
+the absent-image ONNX's always-present CLIFF condition and unclamped scale.
+Browser live capture now uses a resident native worker with a 30-frame
+rolling window. SONIC publishing remains separate integration work.
+
+An earlier shared-input test exposed a released-export bug that component
+fixtures did not cover. The GEM-X checkpoint masks its CLIFF box-camera
+condition when fewer than four 2D joints are confident. NVIDIA's published
+ONNX hard-codes the condition as present. Native inference now preserves and
+applies the checkpoint's presence projection. Historical shared-input Vulkan
+errors after this correction were `0.0010164` maximum / `0.00004492` mean for
+motion, and `0.0001867` maximum / `0.00004650` mean for camera. These are not
+independent end-to-end results. Batch-one upstream Body extraction is retained
+for reproducibility; its earlier batch-16 comparison showed materially
+different tokens.
 
 ## Performance record
 

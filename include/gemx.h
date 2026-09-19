@@ -32,7 +32,8 @@ typedef enum gemx_status {
  * count and is borrowed only for the duration of the call. Inputs are F32:
  * keypoints [frames,77,3] pixel x/y/confidence, boxes [frames,3] cx/cy/size,
  * intrinsics [frames,3,3], Body features [frames,1024], and camera angular
- * velocity [frames,6]. This preprocessing API does not run learned inference. */
+ * velocity [frames,6]. Body features may be NULL for preprocessing and live
+ * sessions; offline inference requires them. */
 typedef struct gemx_sequence_view {
     uint32_t frames;
     const float *keypoints;
@@ -88,7 +89,7 @@ typedef struct gemx_motion_view {
     uint32_t frames;
     float *body_pose;          /* [frames,76,3] axis-angle */
     float *identity_coeffs;    /* [frames,45] */
-    float *scale_params;       /* [frames,69], global scale clamped to .7..1 */
+    float *scale_params;       /* [frames,69], global scale clamped to .7..1 offline only */
     float *global_orient_camera; /* [frames,3] axis-angle */
     float *translation_camera;   /* [frames,3] metres */
     float *global_orient_world;  /* [frames,3] axis-angle */
@@ -124,16 +125,35 @@ GEMX_API gemx_status gemx_denormalize_motion(const float *normalized,
 /* Create a single-backend native denoiser. No backend or device is substituted. */
 GEMX_API gemx_status gemx_session_create(const gemx_session_config *config,
     gemx_session **session,char *error,uint64_t error_capacity);
+/* Released live ONNX semantics: image condition absent, CLIFF condition present.
+ * Body features may be NULL and are ignored. Requires a newly converted GGUF
+ * containing image.absent. The caller supplies its rolling observation window. */
+GEMX_API gemx_status gemx_session_create_live(const gemx_session_config *config,
+    gemx_session **session,char *error,uint64_t error_capacity);
 GEMX_API void gemx_session_destroy(gemx_session *session);
 
 /* Match the two outputs of NVIDIA's released regression ONNX graph. Sequences
  * up to 4096 frames are returned in full and evaluated as consecutive windows
- * of at most 120 frames. Exact upstream parity is covered through 120 frames;
+ * of at most 120 frames. Shared-input numerical fixtures cover through 120 frames;
  * upstream uses an overlapping local-attention policy for longer sequences.
  * Outputs are F32 arrays [frames,585] and [frames,3]. */
 GEMX_API gemx_status gemx_infer(gemx_session *session,
     const gemx_sequence_view *input,float *pred_x,uint64_t pred_x_count,
     float *pred_camera,uint64_t pred_camera_count,
+    char *error,uint64_t error_capacity);
+
+/* Checkpoint contact head, [frames,6], ordered left ankle/foot, right
+ * ankle/foot, left/right wrist. Requires conversion with --checkpoint. */
+GEMX_API gemx_status gemx_infer_contacts(gemx_session *session,
+    const gemx_sequence_view *input,float *pred_x,uint64_t pred_x_count,
+    float *pred_camera,uint64_t pred_camera_count,float *contact_logits,
+    uint64_t contact_count,char *error,uint64_t error_capacity);
+
+/* In-place upstream contact translation correction, grounding and two-pass
+ * CCD IK. Updates body_pose and translation_world; all motion arrays required.
+ * Offline only: uses future frames for smoothing and sequence-wide grounding. */
+GEMX_API gemx_status gemx_refine_contacts(gemx_session *session,
+    const gemx_motion_view *motion,const float *contact_logits,uint64_t contact_count,
     char *error,uint64_t error_capacity);
 
 /* Infer and apply the published SOMA-v2 denormalization, rotation decoding,

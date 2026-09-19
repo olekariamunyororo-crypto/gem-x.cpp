@@ -12,11 +12,12 @@ namespace gemx {
 class model {
 public:
     model(const std::string &path,ggml_backend_buffer_type_t buffer_type,
-          const std::string &architecture="gemx",size_t expected_tensors=245);
+          const std::string &architecture="gemx",size_t expected_tensors=246);
     ~model();
     model(const model &)=delete;
     model &operator=(const model &)=delete;
     ggml_tensor *tensor(const std::string &name) const;
+    bool contains(const std::string &name) const{return tensors_.contains(name);}
     uint32_t u32(const char *name) const;
     float f32(const char *name) const;
     std::string string(const char *name) const;

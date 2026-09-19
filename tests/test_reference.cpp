@@ -84,6 +84,36 @@ int main(int argc,char **argv){
                camera_error.maximum>2e-3f || camera_error.mean>1e-4)
                 throw std::runtime_error("native output exceeds reference tolerance");
         }
+        // The checkpoint treats the CLIFF box-camera condition as absent when
+        // fewer than four 2D joints are confident. NVIDIA's published ONNX
+        // accidentally hard-codes this presence bit to one. With every joint
+        // missing, changing the box must therefore have no learned-output
+        // effect. This is exercised explicitly because normal reference inputs
+        // keep enough joints visible and cannot detect the exporter bug.
+        constexpr uint32_t missing_frames=16;
+        auto missing_keypoints=keypoints,shifted_boxes=boxes;
+        for(uint32_t frame=0;frame<missing_frames;++frame){
+            for(uint32_t joint=0;joint<77;++joint)
+                missing_keypoints[(uint64_t(frame)*77+joint)*3+2]=.1f;
+            shifted_boxes[uint64_t(frame)*3]+=237.f;
+            shifted_boxes[uint64_t(frame)*3+1]-=113.f;
+            shifted_boxes[uint64_t(frame)*3+2]*=1.7f;
+        }
+        gemx_sequence_view missing_input{missing_frames,missing_keypoints.data(),boxes.data(),
+            intrinsics.data(),features.data(),angular.data()};
+        gemx_sequence_view shifted_input{missing_frames,missing_keypoints.data(),shifted_boxes.data(),
+            intrinsics.data(),features.data(),angular.data()};
+        std::vector<float> missing_motion(uint64_t(missing_frames)*585),missing_camera(uint64_t(missing_frames)*3);
+        std::vector<float> shifted_motion(uint64_t(missing_frames)*585),shifted_camera(uint64_t(missing_frames)*3);
+        status=gemx_infer(session.get(),&missing_input,missing_motion.data(),missing_motion.size(),
+                          missing_camera.data(),missing_camera.size(),message,sizeof(message));
+        if(status!=GEMX_OK)throw std::runtime_error(std::string("missing condition: ")+message);
+        status=gemx_infer(session.get(),&shifted_input,shifted_motion.data(),shifted_motion.size(),
+                          shifted_camera.data(),shifted_camera.size(),message,sizeof(message));
+        if(status!=GEMX_OK)throw std::runtime_error(std::string("shifted missing condition: ")+message);
+        if(compare(missing_motion.data(),shifted_motion.data(),missing_motion.size()).maximum>1e-7f ||
+           compare(missing_camera.data(),shifted_camera.data(),missing_camera.size()).maximum>1e-7f)
+            throw std::runtime_error("missing 2D condition still depends on its box");
         // Long offline sequences are returned in full as consecutive released
         // context windows; verify the boundary against independent calls.
         constexpr uint32_t long_frames=137;
@@ -197,8 +227,9 @@ int main(int argc,char **argv){
                     static_cast<unsigned long long>(profile.calls),
                     static_cast<unsigned long long>(profile.frames),
                     static_cast<unsigned long long>(profile.graph_cache_hits));
-        // Reference lengths, three long-window checks and one decoded inference.
-        if(status!=GEMX_OK || profile.calls!=lengths.size()+4 || profile.frames!=473 ||
+        // Reference lengths, two missing-condition checks, three long-window
+        // checks and one decoded inference.
+        if(status!=GEMX_OK || profile.calls!=lengths.size()+6 || profile.frames!=505 ||
            profile.graph_cache_hits<1)
             throw std::runtime_error("inference profile counters are inconsistent");
         std::printf("decoded motion, SOMA-77 forward kinematics and GLB export passed\n");

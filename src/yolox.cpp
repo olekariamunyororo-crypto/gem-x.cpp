@@ -50,26 +50,29 @@ std::vector<float> yolox_prepare_rgb(const gemx_rgb_frame &frame,float &ratio){
     require(frame.row_stride>=row&&(frame.height==1||frame.row_stride<=(UINT64_MAX-row)/(frame.height-1)),
             "YOLOX RGB span overflow");
     require(frame.capacity>=frame.row_stride*(frame.height-1)+row,"YOLOX RGB buffer is too small");
-    ratio=std::min(float(image_size)/frame.height,float(image_size)/frame.width);
-    const int resized_width=std::max(1,int(frame.width*ratio));
-    const int resized_height=std::max(1,int(frame.height*ratio));
+    const double resize_ratio=std::min(double(image_size)/frame.height,double(image_size)/frame.width);
+    ratio=float(resize_ratio);
+    const int resized_width=std::max(1,int(frame.width*resize_ratio));
+    const int resized_height=std::max(1,int(frame.height*resize_ratio));
     std::vector<float> result(uint64_t(focus_channels)*focus_size*focus_size);
     auto pixel=[&](int dx,int dy,int bgr){
         if(dx>=resized_width||dy>=resized_height)return uint8_t(114);
-        const double source_x=(double(dx)+.5)*frame.width/resized_width-.5;
-        const double source_y=(double(dy)+.5)*frame.height/resized_height-.5;
-        int sx=int(std::floor(source_x)),sy=int(std::floor(source_y));
-        int fx=int(std::nearbyint((source_x-sx)*32.0));
-        int fy=int(std::nearbyint((source_y-sy)*32.0));
-        if(fx==32){++sx;fx=0;}if(fy==32){++sy;fy=0;}
+        // OpenCV 4 resize uses 11-bit separable coefficients, unlike
+        // warpAffine's 5-bit interpolation table. Match its uchar path's
+        // intermediate truncation as well as the final rounding.
+        float fx=float((double(dx)+.5)*frame.width/resized_width-.5);
+        float fy=float((double(dy)+.5)*frame.height/resized_height-.5);
+        int sx=int(std::floor(fx)),sy=int(std::floor(fy));fx-=sx;fy-=sy;
         if(sx<0){sx=0;fx=0;}else if(sx>=int(frame.width)-1){sx=int(frame.width)-1;fx=0;}
-        if(sy<0){sy=0;fy=0;}else if(sy>=int(frame.height)-1){sy=int(frame.height)-1;fy=0;}
-        const int sx1=std::min(sx+1,int(frame.width)-1),sy1=std::min(sy+1,int(frame.height)-1);
+        const int ax0=int(std::nearbyint((1.f-fx)*2048)),ax1=int(std::nearbyint(fx*2048));
+        const int ay0=int(std::nearbyint((1.f-fy)*2048)),ay1=int(std::nearbyint(fy*2048));
+        const int sx1=std::min(sx+1,int(frame.width)-1);
+        const int sy0=std::clamp(sy,0,int(frame.height)-1),sy1=std::clamp(sy+1,0,int(frame.height)-1);
         const int channel=2-bgr;
         auto sample=[&](int x,int y){return int(frame.rgb[uint64_t(y)*frame.row_stride+uint64_t(x)*3+channel]);};
-        const int sum=sample(sx,sy)*(32-fx)*(32-fy)+sample(sx1,sy)*fx*(32-fy)+
-                      sample(sx,sy1)*(32-fx)*fy+sample(sx1,sy1)*fx*fy;
-        return uint8_t((sum+512)>>10);
+        const int row0=sample(sx,sy0)*ax0+sample(sx1,sy0)*ax1;
+        const int row1=sample(sx,sy1)*ax0+sample(sx1,sy1)*ax1;
+        return uint8_t((((ay0*(row0>>4))>>16)+((ay1*(row1>>4))>>16)+2)>>2);
     };
     for(int y=0;y<focus_size;++y)for(int x=0;x<focus_size;++x)
         for(int xo=0;xo<2;++xo)for(int yo=0;yo<2;++yo)for(int c=0;c<3;++c){
@@ -125,7 +128,16 @@ yolox::yolox(const gemx_session_config &config){
                     weight->ne[2]==input->ne[2]&&offset->ne[0]==weight->ne[3]))
                 throw std::invalid_argument("invalid YOLOX convolution weights at " +
                     std::to_string(convolution-1)+" (input channels "+std::to_string(input->ne[2])+")");
-            value=ggml_conv_2d(ctx,weight,input,stride,stride,int(weight->ne[0]/2),int(weight->ne[1]/2),1,1);
+            // ggml_conv_2d unconditionally rounds its im2col buffer to F16
+            // for F32 weights. Backend precision switches cannot undo that.
+            // Preserve F32 observations so strict mode is actually F32.
+            auto *columns=ggml_im2col(ctx,weight,input,stride,stride,int(weight->ne[0]/2),int(weight->ne[1]/2),1,1,true,GGML_TYPE_F32);
+            value=ggml_mul_mat(ctx,
+                ggml_reshape_2d(ctx,columns,columns->ne[0],columns->ne[1]*columns->ne[2]*columns->ne[3]),
+                ggml_reshape_2d(ctx,weight,weight->ne[0]*weight->ne[1]*weight->ne[2],weight->ne[3]));
+            ggml_mul_mat_set_prec(value,GGML_PREC_F32);
+            value=ggml_reshape_4d(ctx,value,columns->ne[1],columns->ne[2],columns->ne[3],weight->ne[3]);
+            value=ggml_cont(ctx,ggml_permute(ctx,value,0,1,3,2));
             value=bias(ctx,value,offset);break;
         }
         case 'S': require(field.size()==2,"invalid YOLOX sigmoid recipe");value=ggml_sigmoid(ctx,reference(integer(field[1])));break;

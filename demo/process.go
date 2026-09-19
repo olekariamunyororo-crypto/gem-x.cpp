@@ -51,9 +51,34 @@ func readBoxes(path string, count int) ([][4]float32, error) {
 	return boxes, nil
 }
 
+func writeSequenceManifest(path string, rows [][]string, boxes [][4]float32) error {
+	if len(rows) != len(boxes) {
+		return fmt.Errorf("sequence box count mismatch")
+	}
+	if err := writePathManifest(path, "GEMSEQ02", rows); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	for _, box := range boxes {
+		if err := binary.Write(f, binary.LittleEndian, observationBox(box)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (a *app) native(ctx context.Context, id string, args ...string) error {
 	cmd := exec.CommandContext(ctx, a.cfg.pipeline, args...)
 	cmd.Env = os.Environ()
+	if a.cfg.strict {
+		precision := a.cfg
+		precision.bf16 = false
+		cmd.Env = precision.bodyEnvironment(cmd.Env)
+	}
 	out, err := cmd.CombinedOutput()
 	logPath := filepath.Join(a.dir(id), "inference.log")
 	f, openErr := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
@@ -117,15 +142,19 @@ func (a *app) process(ctx context.Context, id string) error {
 		sequenceRows[i] = []string{frameRows[i][0], bodyPaths[i]}
 	}
 	sequence := filepath.Join(dir, "sequence.manifest")
-	if err = writePathManifest(sequence, "GEMSEQ01", sequenceRows); err != nil {
+	if err = writeSequenceManifest(sequence, sequenceRows, boxes); err != nil {
 		return err
 	}
 	output := filepath.Join(dir, "output")
 	if err = os.MkdirAll(output, 0700); err != nil {
 		return err
 	}
-	a.stage(id, "Running exact full-sequence GEM-X motion inference")
-	return a.native(ctx, id, "--offline", c.denoiser, c.vitpose, c.module, c.backend, strconv.Itoa(c.device), c.deviceName, strconv.Itoa(c.threads), sequence, output, strconv.FormatFloat(snapshot.FPS, 'g', -1, 64))
+	a.stage(id, "Running full-sequence GEM-X motion inference")
+	mode := "--offline"
+	if c.contacts {
+		mode = "--offline-contact"
+	}
+	return a.native(ctx, id, mode, c.denoiser, c.vitpose, c.module, c.backend, strconv.Itoa(c.device), c.deviceName, strconv.Itoa(c.threads), sequence, output, strconv.FormatFloat(snapshot.FPS, 'g', -1, 64))
 }
 
 func (a *app) work(ctx context.Context) {
@@ -145,7 +174,9 @@ func (a *app) work(ctx context.Context) {
 			_ = a.save(j)
 			a.mu.Unlock()
 			jobCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
+			a.gpu.Lock()
 			err := a.process(jobCtx, id)
+			a.gpu.Unlock()
 			cancel()
 			a.mu.Lock()
 			j = a.jobs[id]

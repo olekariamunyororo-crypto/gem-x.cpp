@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-18",
+  "scope": "Demo live integration; lossless HTTP video replay and Chromium simulated webcam. No physical camera or robot tested.",
+  "cpu_affinity": "0-7",
+  "native_mode": "strict F32, absent Body features, 30-frame rolling window",
+  "http": {
+    "poses": 71,
+    "keypoint_component_max": 0.0,
+    "joint_max_metres": 0.0,
+    "mean_http_seconds": 0.33181464159861207,
+    "note": "Lossless frame HTTP replay, not physical camera latency; strict F32."
+  },
+  "browser": {
+    "poses": 33,
+    "maxPending": 1,
+    "status": "Live \u00b7 keep your whole body in view",
+    "metrics": "7.3 fps \u00b7 133 ms frame age \u00b7 127 ms inference \u00b7 30-frame context",
+    "hasStream": true,
+    "restart": true,
+    "offline_switch": true,
+    "permission_error_recovery": true,
+    "browser_exceptions": []
+  },
+  "checks": [
+    "Go tests with race detector",
+    "Vulkan CTest 4/4",
+    "release and Vulkan pipeline builds",
+    "JavaScript syntax",
+    "stop/restart and idle expiry",
+    "reject overlapping frames and competing live sessions",
+    "startup without Body assets"
+  ]
+}

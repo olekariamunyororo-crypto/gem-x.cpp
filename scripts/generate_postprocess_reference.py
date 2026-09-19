@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate an upstream PyTorch reference for GEM-X SOMA-v2 decoding.
 
-This executes NVIDIA's pinned rotation and motion helpers over the official
-ONNX fixture. It intentionally does not import or deserialize a checkpoint.
+This instantiates NVIDIA's configured decoder and executes its camera/world
+helpers over the official ONNX fixture. No checkpoint is deserialized.
 """
 
 import argparse
@@ -15,12 +15,10 @@ import sys
 
 import numpy as np
 import torch
-import torch.nn.functional as F
-from scipy.ndimage._filters import _gaussian_kernel1d
 
 SOURCE_REVISION = "32992550dba114c62243fb55e361311972dce8f9"
 STATS_SHA256 = "dafe4ef6a62e824b0b325f54e42d508015785509bc478ef76e4208ae1f95ba7c"
-REFERENCE_SHA256 = "728aba8c7832376f5f1adb05a01be862cbaefce1584ca3bb24153ec4ae15cf86"
+REFERENCE_SHA256 = "17cf39b9d0df6809e2c4c5db9c4b2ba0833ed24e5ba3eda2e9fa320a3ff5d073"
 LENGTH = 30
 
 
@@ -63,10 +61,10 @@ def read_fixture(path: Path):
             "<7I", stream.read(28)
         )
         if (version, maximum, count, joints, features, motion_dim, camera_dim) != (
-            1, 120, 4, 77, 1024, 585, 3
+            1, 120, 5, 77, 1024, 585, 3
         ):
             raise ValueError("unsupported inference fixture")
-        lengths = struct.unpack("<4I", stream.read(16))
+        lengths = struct.unpack("<5I", stream.read(20))
         keypoints = read_f32(stream, maximum * 77 * 3).reshape(maximum, 77, 3)
         boxes = read_f32(stream, maximum * 3).reshape(maximum, 3)
         intrinsics = read_f32(stream, maximum * 9).reshape(maximum, 3, 3)
@@ -83,14 +81,6 @@ def read_fixture(path: Path):
     return keypoints[:LENGTH], boxes[:LENGTH], intrinsics[:LENGTH], angular[:LENGTH], *selected
 
 
-def gaussian_smooth(value: torch.Tensor) -> torch.Tensor:
-    kernel = torch.from_numpy(_gaussian_kernel1d(3, 0, radius=12)).float()[None, None]
-    x = value.transpose(-2, -1)
-    shape = x.shape[:-1]
-    x = F.pad(x.reshape(-1, 1, x.shape[-1])[None], (12, 12, 0, 0), mode="replicate")[0]
-    return F.conv1d(x, kernel).squeeze(1).reshape(*shape, -1).transpose(-1, -2)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("inference_fixture", type=Path)
@@ -103,64 +93,29 @@ def main() -> None:
     ).strip()
     if revision != SOURCE_REVISION:
         raise ValueError("GEM-X checkout is not the pinned source revision")
+    load_stats(root / "gem/network/stats_compose.py")  # Verify the imported statistics hash.
     sys.path.insert(0, str(root))
-    from gem.utils.rotation_conversions import (  # pylint: disable=import-outside-toplevel
-        axis_angle_to_matrix,
-        matrix_to_axis_angle,
-        rotation_6d_to_matrix,
-    )
-    from gem.utils.motion_utils import (  # pylint: disable=import-outside-toplevel
-        get_tgtcoord_rootparam,
-        rollout_local_transl_vel,
-    )
+    from hydra.utils import instantiate
+    from omegaconf import OmegaConf
+    from gem.utils.cam_utils import compute_transl_full_cam
+    from gem.pipeline.gem_pipeline import get_body_params_w_Rt_v2
 
     _, boxes, intrinsics, angular, normalized, camera = read_fixture(args.inference_fixture)
-    mean, stddev = load_stats(root / "gem/network/stats_compose.py")
-    x = torch.from_numpy(normalized * stddev + mean)[None]
-    boxes_t = torch.from_numpy(boxes)[None]
-    intrinsics_t = torch.from_numpy(intrinsics)[None]
-    camera_t = torch.from_numpy(camera)[None]
-    body = matrix_to_axis_angle(rotation_6d_to_matrix(x[..., :456].reshape(1, LENGTH, 76, 6)))
-    identity = x[..., 456:501]
-    scales = x[..., 501:570].clone()
-    scales[..., 0].clamp_(0.7, 1.0)
-    orient_camera = matrix_to_axis_angle(rotation_6d_to_matrix(x[..., 570:576]))
-    orient_gravity = matrix_to_axis_angle(rotation_6d_to_matrix(x[..., 576:582]))
-    local_velocity = x[..., 582:585]
-
-    s, tx, ty = camera_t.unbind(-1)
-    sb = s * boxes_t[..., 2]
-    cx = 2 * (boxes_t[..., 0] - intrinsics_t[..., 0, 2]) / (sb + 1e-9)
-    cy = 2 * (boxes_t[..., 1] - intrinsics_t[..., 1, 2]) / (sb + 1e-9)
-    tz = 2 * intrinsics_t[..., 0, 0] / (sb + 1e-9)
-    translation_camera = torch.stack((tx + cx, ty + cy, tz), -1)
-
-    def as_identity(rotation):
-        result = rotation.clone()
-        mask = matrix_to_axis_angle(result).norm(dim=-1) < 1e-5
-        result[mask] = torch.eye(3).expand(mask.sum(), -1, -1)
-        return result
-
-    camera_delta = as_identity(rotation_6d_to_matrix(torch.from_numpy(angular)[None]))
-    rotation_gravity = axis_angle_to_matrix(orient_gravity)
-    rotation_camera = axis_angle_to_matrix(orient_camera)
-    camera_to_gravity = rotation_gravity @ rotation_camera.mT
-    next_to_gravity = camera_to_gravity @ camera_delta.mT
-    first = F.normalize(camera_to_gravity[..., 2].clone().index_fill(-1, torch.tensor([1]), 0), dim=-1)
-    second = F.normalize(next_to_gravity[..., 2].clone().index_fill(-1, torch.tensor([1]), 0), dim=-1)
-    yaw = F.normalize(second.cross(first, dim=-1), dim=-1)
-    yaw *= torch.acos(torch.clamp((first * second).sum(-1, keepdim=True), -1, 1))
-    yaw = gaussian_smooth(yaw)
-    step = axis_angle_to_matrix(yaw).mT
-    cumulative = [torch.eye(3)[None]]
-    for frame in range(1, LENGTH):
-        cumulative.append(cumulative[-1] @ step[:, frame])
-    cumulative = as_identity(torch.stack(cumulative, 1))
-    orient_world = matrix_to_axis_angle(cumulative @ rotation_gravity)
-    translation_world = rollout_local_transl_vel(local_velocity, orient_world)
-    orient_world, translation_world, _ = get_tgtcoord_rootparam(
-        orient_world, translation_world, tsf="ay->ay"
-    )
+    decoder = instantiate(OmegaConf.load(root / "configs/endecoder/v2_soma_local_cam.yaml"))
+    decoder.build_obs_indices_dict()
+    with torch.inference_mode():
+        decoded = decoder.decode(torch.from_numpy(normalized)[None])
+        body = decoded["body_pose"]
+        identity = decoded["identity_coeffs"]
+        scales = decoded["scale_params"].clone()
+        scales[..., 0].clamp_(0.7, 1.0)
+        orient_camera = decoded["global_orient"]
+        translation_camera = compute_transl_full_cam(
+            torch.from_numpy(camera)[None], torch.from_numpy(boxes)[None],
+            torch.from_numpy(intrinsics)[None])
+        world = get_body_params_w_Rt_v2(decoded["global_orient_gv"],
+            decoded["local_transl_vel"], orient_camera, torch.from_numpy(angular)[None])
+        orient_world, translation_world = world["global_orient"], world["transl"]
 
     values = (body, identity, scales, orient_camera, translation_camera,
               orient_world, translation_world)

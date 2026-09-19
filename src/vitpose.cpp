@@ -50,8 +50,15 @@ std::vector<float> prepare_frame(const gemx_rgb_frame &frame){
     const float cx=frame.box[0],cy=frame.box[1],size=frame.box[2];
     require(std::isfinite(cx) && std::isfinite(cy) && std::isfinite(size) && size>0,
             "ViTPose box must be finite with positive size");
-    const double scale=double(size)/255.0,origin_x=double(cx)-double(size)*.5,
-                 origin_y=double(cy)-double(size)*.5;
+    // Upstream builds float32 source anchors, then OpenCV computes the affine
+    // matrix in double precision. Preserve those rounded anchors, including
+    // the tiny shear possible when the centre and endpoints round differently.
+    const double origin_x=float(double(cx)-double(size)*.5);
+    const double origin_y=float(double(cy)-double(size)*.5);
+    const double right_x=float(double(cx)+double(size)*.5);
+    const double scale_x=(right_x-origin_x)/255.0;
+    const double shear_x=(double(cx)-origin_x)/127.5-scale_x;
+    const double scale_y=(double(cy)-origin_y)/127.5;
     std::vector<float> result(3*image_width*image_height);
     constexpr std::array<float,3> mean{.485f,.456f,.406f},stddev{.229f,.224f,.225f};
     auto sample=[&](int64_t x,int64_t y,int channel){
@@ -61,12 +68,20 @@ std::vector<float> prepare_frame(const gemx_rgb_frame &frame){
     for(int64_t y=0;y<image_height;++y)for(int64_t x=0;x<image_width;++x){
         // Match OpenCV INTER_LINEAR's 5-bit fractional-coordinate table. The
         // network sees columns 32..223 of the published 256x256 crop.
-        const int64_t map_x=(int64_t(std::nearbyint((origin_x+scale*(x+32))*1024.0))+16)>>5;
-        const int64_t map_y=(int64_t(std::nearbyint((origin_y+scale*y)*1024.0))+16)>>5;
+        // warpAffine rounds the row origin and column increment separately,
+        // before adding the interpolation-table half step. Rounding their sum
+        // instead changes crop pixels even with identical image and box inputs.
+        const int64_t map_x=(int64_t(std::nearbyint((origin_x+shear_x*y)*1024.0))+
+            int64_t(std::nearbyint(scale_x*(x+32)*1024.0))+16)>>5;
+        const int64_t map_y=(int64_t(std::nearbyint((origin_y+scale_y*y)*1024.0))+16)>>5;
         const int64_t sx=map_x>>5,sy=map_y>>5;const int fx=int(map_x&31),fy=int(map_y&31);
         for(int c=0;c<3;++c){
-            const int sum=sample(sx,sy,c)*(32-fx)*(32-fy)+sample(sx+1,sy,c)*fx*(32-fy)+
-                sample(sx,sy+1,c)*(32-fx)*fy+sample(sx+1,sy+1,c)*fx*fy;
+            // GEM-X's get_batch/vitpose_preprocess reverses the channels of
+            // frames supplied by its RGB video reader. Preserve that released
+            // convention here; matching the network alone does not cover it.
+            const int channel=2-c;
+            const int sum=sample(sx,sy,channel)*(32-fx)*(32-fy)+sample(sx+1,sy,channel)*fx*(32-fy)+
+                sample(sx,sy+1,channel)*(32-fx)*fy+sample(sx+1,sy+1,channel)*fx*fy;
             const auto pixel=uint8_t((sum+512)>>10);
             result[(c*image_height+y)*image_width+x]=(float(pixel)/255.f-mean[c])/stddev[c];
         }

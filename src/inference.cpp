@@ -43,7 +43,7 @@ struct session::graph_state {
     ggml_context *context=nullptr;
     ggml_cgraph *graph=nullptr;
     ggml_gallocr_t allocator=nullptr;
-    ggml_tensor *xy=nullptr,*visible=nullptr,*cliff=nullptr,*image=nullptr,*angular=nullptr;
+    ggml_tensor *xy=nullptr,*visible=nullptr,*cliff=nullptr,*cliff_present=nullptr,*image=nullptr,*angular=nullptr;
     ggml_tensor *positions=nullptr,*output=nullptr;
     uint32_t frames=0;
     std::list<uint32_t>::iterator lru;
@@ -55,7 +55,7 @@ struct session::graph_state {
 
 session::~session()=default;
 
-session::session(const gemx_session_config &config){
+session::session(const gemx_session_config &config,bool live):live_(live){
     require(config.model_path && config.backend_module && config.backend_name,
             "model, backend module and backend name are required");
     require(config.threads>=1 && config.threads<=1024,"threads must be in 1..1024");
@@ -65,7 +65,11 @@ session::session(const gemx_session_config &config){
         config.device_index,config.threads,
         config.expected_device_description?config.expected_device_description:"");
     model_=std::make_unique<model>(config.model_path,backend_->buffer_type());
+    if(live_)model_->tensor("image.absent"); // Fail at creation for older converters.
     motion_mean_=model_->read_f32("motion.mean");motion_std_=model_->read_f32("motion.std");
+    // The released SOMA-v2 decoder is configured with clip_std=true. Apply
+    // this also to older GGUFs whose converter stored the unclipped statistics.
+    for(float &value:motion_std_)value=std::max(value,1.f);
     soma_local_=model_->read_f32("soma.rest_local");soma_world_=model_->read_f32("soma.rest_world");
     soma_parents_=model_->read_i32("soma.parents");soma_names_=model_->string_array("gemx.soma_joint_names");
     auto &id=soma_identity_;
@@ -108,11 +112,13 @@ session::graph_state &session::graph(uint32_t frames){
     state->xy=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,2,33,frames);
     state->visible=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,1,33,frames);
     state->cliff=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,3,frames);
+    state->cliff_present=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,1,frames);
     state->image=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,1024,frames);
     state->angular=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,6,frames);
     state->positions=ggml_new_tensor_1d(ctx,GGML_TYPE_I32,frames);
-    for(auto [tensor,name]:std::array<std::pair<ggml_tensor *,const char *>,6>{{
+    for(auto [tensor,name]:std::array<std::pair<ggml_tensor *,const char *>,7>{{
         {state->xy,"input.xy"},{state->visible,"input.visible"},{state->cliff,"input.cliff"},
+        {state->cliff_present,"input.cliff_present"},
         {state->image,"input.image"},{state->angular,"input.angular"},
         {state->positions,"input.positions"}}}){
         ggml_set_name(tensor,name);ggml_set_input(tensor);
@@ -132,13 +138,21 @@ session::graph_state &session::graph(uint32_t frames){
 
     auto *cliff=linear(ctx,*model_,"cliff.mlp.0",cliff_input);
     cliff=ggml_silu(ctx,cliff);cliff=linear(ctx,*model_,"cliff.mlp.2",cliff);
+    auto *cliff_mask=ggml_repeat_4d(ctx,state->cliff_present,512,frames,1,1);
+    cliff=ggml_mul(ctx,cliff,cliff_mask);
     cliff=linear(ctx,*model_,"cliff.exists.0",cliff);
+    cliff=ggml_add(ctx,cliff,ggml_mul_mat(ctx,model_->tensor("cliff.exists.presence"),state->cliff_present));
     cliff=ggml_silu(ctx,cliff);cliff=linear(ctx,*model_,"cliff.exists.2",cliff);
 
-    auto *image=layer_norm(ctx,*model_,"image.norm",image_input,1e-5f);
-    image=linear(ctx,*model_,"image.proj",image);
-    image=linear(ctx,*model_,"image.exists.0",image);
-    image=ggml_silu(ctx,image);image=linear(ctx,*model_,"image.exists.2",image);
+    ggml_tensor *image=nullptr;
+    if(live_){
+        image=ggml_repeat_4d(ctx,model_->tensor("image.absent"),512,frames,1,1);
+    }else{
+        image=layer_norm(ctx,*model_,"image.norm",image_input,1e-5f);
+        image=linear(ctx,*model_,"image.proj",image);
+        image=linear(ctx,*model_,"image.exists.0",image);
+        image=ggml_silu(ctx,image);image=linear(ctx,*model_,"image.exists.2",image);
+    }
 
     auto *angular=ggml_div(ctx,ggml_sub(ctx,angular_input,model_->tensor("angular.mean")),
                            model_->tensor("angular.std"));
@@ -209,6 +223,11 @@ session::graph_state &session::graph(uint32_t frames){
     camera=ggml_add(ctx,ggml_mul(ctx,camera,model_->tensor("camera.std")),
                     model_->tensor("camera.mean"));
     state->output=ggml_concat(ctx,motion,camera,0);
+    if(model_->contains("contact.mlp.0.weight")){
+        auto *contact=linear(ctx,*model_,"contact.mlp.0",hidden);
+        contact=ggml_gelu_erf(ctx,contact);contact=linear(ctx,*model_,"contact.mlp.2",contact);
+        state->output=ggml_concat(ctx,state->output,contact,0);
+    }
     ggml_set_name(state->output,"output.prediction");ggml_set_output(state->output);
     ggml_build_forward_expand(state->graph,state->output);
     state->allocator=ggml_gallocr_new(backend_->buffer_type());
@@ -223,7 +242,7 @@ session::graph_state &session::graph(uint32_t frames){
     return *position->second;
 }
 
-void session::infer_window(const gemx_sequence_view &input,float *motion,float *camera){
+void session::infer_window(const gemx_sequence_view &input,float *motion,float *camera,float *contacts){
     require(input.frames>=1 && input.frames<=120,"native denoiser window accepts 1..120 frames");
     const auto preprocessing_started=clock_type::now();
     std::vector<float> normalized(uint64_t(input.frames)*77*3),cliff(uint64_t(input.frames)*3);
@@ -231,11 +250,17 @@ void session::infer_window(const gemx_sequence_view &input,float *motion,float *
     auto status=gemx_preprocess_sequence(&input,normalized.data(),normalized.size(),
                                          cliff.data(),cliff.size(),message,sizeof(message));
     if(status!=GEMX_OK)throw std::invalid_argument(message);
-    std::vector<float> xy(uint64_t(input.frames)*33*2),visible(uint64_t(input.frames)*33);
+    std::vector<float> xy(uint64_t(input.frames)*33*2),visible(uint64_t(input.frames)*33),cliff_present(input.frames);
     for(uint32_t f=0;f<input.frames;++f)for(uint32_t j=0;j<33;++j){
         const auto *source=normalized.data()+(uint64_t(f)*77+joints[j])*3;
         xy[(uint64_t(f)*33+j)*2]=source[0];xy[(uint64_t(f)*33+j)*2+1]=source[1];
         visible[uint64_t(f)*33+j]=source[2]>.5f?1.f:0.f;
+    }
+    for(uint32_t f=0;f<input.frames;++f){
+        uint32_t confident=0;
+        for(uint32_t j=0;j<77;++j)
+            confident+=input.keypoints[(uint64_t(f)*77+j)*3+2]>.5f;
+        cliff_present[f]=(live_ || confident>3)?1.f:0.f;
     }
     std::vector<int32_t> positions(input.frames);for(uint32_t i=0;i<input.frames;++i)positions[i]=i;
     profile_.preprocessing_ns+=elapsed(preprocessing_started);
@@ -247,37 +272,41 @@ void session::infer_window(const gemx_sequence_view &input,float *motion,float *
     set(state.xy,xy.data(),xy.size()*sizeof(float));
     set(state.visible,visible.data(),visible.size()*sizeof(float));
     set(state.cliff,cliff.data(),cliff.size()*sizeof(float));
-    set(state.image,input.body_features,uint64_t(input.frames)*1024*sizeof(float));
+    set(state.cliff_present,cliff_present.data(),cliff_present.size()*sizeof(float));
+    if(!live_)set(state.image,input.body_features,uint64_t(input.frames)*1024*sizeof(float));
     set(state.angular,input.camera_angular_velocity,uint64_t(input.frames)*6*sizeof(float));
     set(state.positions,positions.data(),positions.size()*sizeof(int32_t));
     profile_.upload_ns+=elapsed(upload_started);
     const auto inference_started=clock_type::now();backend_->compute(state.graph);
     profile_.inference_ns+=elapsed(inference_started);
     const auto download_started=clock_type::now();
-    std::vector<float> output(uint64_t(input.frames)*588);
+    const uint32_t stride=model_->contains("contact.mlp.0.weight")?594:588;
+    std::vector<float> output(uint64_t(input.frames)*stride);
     ggml_backend_tensor_get(state.output,output.data(),0,output.size()*sizeof(float));
     for(uint32_t f=0;f<input.frames;++f){
-        std::memcpy(motion+uint64_t(f)*585,output.data()+uint64_t(f)*588,585*sizeof(float));
-        std::memcpy(camera+uint64_t(f)*3,output.data()+uint64_t(f)*588+585,3*sizeof(float));
+        std::memcpy(motion+uint64_t(f)*585,output.data()+uint64_t(f)*stride,585*sizeof(float));
+        std::memcpy(camera+uint64_t(f)*3,output.data()+uint64_t(f)*stride+585,3*sizeof(float));
+        if(contacts)std::memcpy(contacts+uint64_t(f)*6,output.data()+uint64_t(f)*stride+588,6*sizeof(float));
         camera[uint64_t(f)*3]=std::max(camera[uint64_t(f)*3],.25f);
     }
     profile_.download_ns+=elapsed(download_started);
 }
 
-void session::infer(const gemx_sequence_view &input,float *motion,float *camera){
+void session::infer(const gemx_sequence_view &input,float *motion,float *camera,float *contacts){
     std::lock_guard lock(mutex_);
     require(input.frames>=1 && input.frames<=GEMX_MAX_FRAMES,
             "native denoiser accepts 1..4096 frames");
     require(motion && camera,"inference output buffers are required");
-    require(input.keypoints && input.boxes && input.intrinsics && input.body_features &&
+    require(!contacts || model_->contains("contact.mlp.0.weight"),"GGUF lacks contact head; reconvert with --checkpoint");
+    require(input.keypoints && input.boxes && input.intrinsics && (live_ || input.body_features) &&
             input.camera_angular_velocity,"all sequence arrays are required");
     for(uint32_t start=0;start<input.frames;start+=120){
         const uint32_t count=std::min<uint32_t>(120,input.frames-start);
         gemx_sequence_view window{count,
             input.keypoints+uint64_t(start)*77*3,input.boxes+uint64_t(start)*3,
-            input.intrinsics+uint64_t(start)*9,input.body_features+uint64_t(start)*1024,
+            input.intrinsics+uint64_t(start)*9,live_?nullptr:input.body_features+uint64_t(start)*1024,
             input.camera_angular_velocity+uint64_t(start)*6};
-        infer_window(window,motion+uint64_t(start)*585,camera+uint64_t(start)*3);
+        infer_window(window,motion+uint64_t(start)*585,camera+uint64_t(start)*3,contacts?contacts+uint64_t(start)*6:nullptr);
     }
     ++profile_.calls;profile_.frames+=input.frames;
 }

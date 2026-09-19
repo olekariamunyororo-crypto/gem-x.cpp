@@ -12,6 +12,7 @@
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <numeric>
@@ -96,24 +97,35 @@ std::array<float,1024> load_pose_token(const std::string &path){
 }
 
 struct pose_sample {
-    std::array<float,77*3> positions{},local_translations{},keypoints{};
+    std::array<float,77*3> positions{},camera_positions{},local_translations{},keypoints{};
     std::array<float,77*4> rotations{};
     std::array<int32_t,77> parents{};
     std::array<float,3> camera{};
 };
 void save_pose(const std::string &path,const pose_sample &value){
     std::ofstream out(path,std::ios::binary|std::ios::trunc);if(!out)throw std::runtime_error("cannot create GEM-X pose");
-    write(out,"GEMPOSE1",8);write(out,value.positions.data(),value.positions.size());
+    write(out,"GEMPOSE2",8);write(out,value.positions.data(),value.positions.size());
+    write(out,value.camera_positions.data(),value.camera_positions.size());
     write(out,value.rotations.data(),value.rotations.size());
     write(out,value.local_translations.data(),value.local_translations.size());
     write(out,value.parents.data(),value.parents.size());write(out,value.camera.data(),3);
     write(out,value.keypoints.data(),value.keypoints.size());
 }
+
+void save_predictions(const std::string &path,uint32_t frames,
+                      const std::vector<float> &motion,const std::vector<float> &camera){
+    std::ofstream out(path,std::ios::binary|std::ios::trunc);
+    if(!out)throw std::runtime_error("cannot create raw GEM-X predictions");
+    write(out,"GEMRAW01",8);write(out,&frames);
+    write(out,motion.data(),motion.size());write(out,camera.data(),camera.size());
+}
 pose_sample load_pose(const std::string &path){
     std::ifstream in(path,std::ios::binary);if(!in)throw std::runtime_error("cannot open GEM-X pose");
     std::array<char,8> magic{};read(in,magic.data(),8);
-    if(std::string(magic.data(),8)!="GEMPOSE1")throw std::invalid_argument("wrong GEM-X pose magic");
+    const bool version_two=std::string(magic.data(),8)=="GEMPOSE2";
+    if(!version_two&&std::string(magic.data(),8)!="GEMPOSE1")throw std::invalid_argument("wrong GEM-X pose magic");
     pose_sample value;read(in,value.positions.data(),value.positions.size());
+    if(version_two)read(in,value.camera_positions.data(),value.camera_positions.size());
     read(in,value.rotations.data(),value.rotations.size());
     read(in,value.local_translations.data(),value.local_translations.size());
     read(in,value.parents.data(),value.parents.size());read(in,value.camera.data(),3);
@@ -281,14 +293,14 @@ int detect_sequence(int argc,char **argv){
         images.push_back(load_image(path));const auto &image=images.back();
         gemx_rgb_frame frame{image.rgb.data(),image.rgb.size(),image.width,image.height,image.stride,{}};
         std::array<gemx_detection,100> detections{};uint32_t count=0;
-        api(gemx_yolox_detect(detector.get(),&frame,.1f,.65f,detections.data(),detections.size(),&count,error,sizeof(error)),error);
+        api(gemx_yolox_detect(detector.get(),&frame,.5f,.45f,detections.data(),detections.size(),&count,error,sizeof(error)),error);
         tracks.push_back(tracker.advance(detections.data(),count));
         for(const auto &item:tracks.back())area[item.id]+=std::max(0.f,item.box[2]-item.box[0])*std::max(0.f,item.box[3]-item.box[1]);
     }
     int primary=-1;double greatest=-1;for(const auto &[id,value]:area)if(value>greatest){greatest=value;primary=id;}
     std::vector<std::array<float,4>> boxes(paths.size());std::vector<bool> valid(paths.size());
     for(size_t i=0;i<tracks.size();++i)for(const auto &item:tracks[i])if(item.id==primary){boxes[i]=item.box;valid[i]=true;break;}
-    if(primary<0){for(size_t i=0;i<boxes.size();++i)boxes[i]=images[i].box;}
+    if(primary<0){for(size_t i=0;i<boxes.size();++i)boxes[i]={0,0,float(images[i].width-1),float(images[i].height-1)};}
     else{
         size_t first=0;while(first<valid.size()&&!valid[first])++first;
         for(size_t i=0;i<first;++i)boxes[i]=boxes[first];size_t previous=first;
@@ -299,6 +311,8 @@ int detect_sequence(int argc,char **argv){
         }
         for(size_t i=previous+1;i<boxes.size();++i)boxes[i]=boxes[previous];
     }
+    for(size_t i=0;i<boxes.size();++i)for(int axis=0;axis<4;++axis)
+        boxes[i][axis]=std::clamp(boxes[i][axis],0.f,axis%2?float(images[i].height-1):float(images[i].width-1));
     auto unsmoothed=boxes;
     for(size_t i=0;i<boxes.size();++i)for(int axis=0;axis<4;++axis){
         boxes[i][axis]=0;for(int offset=-2;offset<=2;++offset){
@@ -319,11 +333,14 @@ int offline_sequence(int argc,char **argv){
     char error[512]{};
     std::ifstream manifest(argv[9],std::ios::binary);if(!manifest)throw std::runtime_error("cannot open sequence manifest");
     std::array<char,8> magic{};read(manifest,magic.data(),8);
-    if(std::string(magic.data(),8)!="GEMSEQ01")throw std::invalid_argument("wrong sequence manifest magic");
+    const bool explicit_boxes=std::string(magic.data(),8)=="GEMSEQ02";
+    if(!explicit_boxes && std::string(magic.data(),8)!="GEMSEQ01")throw std::invalid_argument("wrong sequence manifest magic");
     uint32_t count=0;read(manifest,&count);
     if(!count||count>120)throw std::invalid_argument("sequence manifest must contain 1..120 frames");
     std::vector<std::string> images(count),bodies(count);
     for(uint32_t i=0;i<count;++i){images[i]=read_string(manifest);bodies[i]=read_string(manifest);}
+    std::vector<float> source_boxes(uint64_t(count)*3);
+    if(explicit_boxes)read(manifest,source_boxes.data(),source_boxes.size());
     if(manifest.peek()!=std::char_traits<char>::eof())throw std::invalid_argument("trailing sequence manifest data");
     auto den_cfg=config(argv[2],argv[4],argv[5],argv[7],number(argv[6]),number(argv[8]),2);
     gemx_session *raw_session=nullptr;api(gemx_session_create(&den_cfg,&raw_session,error,sizeof(error)),error);
@@ -332,11 +349,19 @@ int offline_sequence(int argc,char **argv){
     gemx_vitpose *raw_pose=nullptr;api(gemx_vitpose_create(&pose_cfg,&raw_pose,error,sizeof(error)),error);
     vitpose_ptr pose(raw_pose,gemx_vitpose_destroy);
     std::vector<float> keypoints(uint64_t(count)*77*3),boxes(uint64_t(count)*3),K(uint64_t(count)*9),features(uint64_t(count)*1024),angular(uint64_t(count)*6);
+    // Static camera motion is the identity rotation in the published 6D
+    // representation. Six zeroes do not encode identity: Gram-Schmidt cannot
+    // normalize either basis vector, and the invalid condition also poisons
+    // the world-orientation rollout.
+    for(uint32_t i=0;i<count;++i){angular[uint64_t(i)*6]=1.f;angular[uint64_t(i)*6+4]=1.f;}
     std::vector<image_data> loaded;loaded.reserve(count);
     for(uint32_t i=0;i<count;++i){
         loaded.push_back(load_image(images[i]));const auto &image=loaded.back();
         const float cx=(image.box[0]+image.box[2])*.5f,cy=(image.box[1]+image.box[3])*.5f,size=image.box[2]-image.box[0];
         boxes[uint64_t(i)*3]=cx;boxes[uint64_t(i)*3+1]=cy;boxes[uint64_t(i)*3+2]=size;
+        // GEM/ViTPose use the original cx/cy/size. Reconstructing them from
+        // Body's float32 corner box loses bits and can change crop pixels.
+        if(explicit_boxes)std::copy_n(source_boxes.data()+uint64_t(i)*3,3,boxes.data()+uint64_t(i)*3);
         const float focal=static_cast<float>(std::max(image.width,image.height));
         std::array<float,9> matrix={focal,0,image.width*.5f,0,focal,image.height*.5f,0,0,1};
         std::copy(matrix.begin(),matrix.end(),K.begin()+uint64_t(i)*9);
@@ -350,17 +375,38 @@ int offline_sequence(int argc,char **argv){
                                    uint64_t(batch)*77*3,error,sizeof(error)),error);
     }
     gemx_sequence_view input{count,keypoints.data(),boxes.data(),K.data(),features.data(),angular.data()};
+    std::vector<float> raw_motion(uint64_t(count)*585),raw_camera(uint64_t(count)*3);
+    const bool contact=std::strcmp(argv[1],"--offline-contact")==0;
+    std::vector<float> contact_logits(uint64_t(count)*6);
+    if(contact)api(gemx_infer_contacts(session.get(),&input,raw_motion.data(),raw_motion.size(),raw_camera.data(),raw_camera.size(),
+        contact_logits.data(),contact_logits.size(),error,sizeof(error)),error);
+    else api(gemx_infer(session.get(),&input,raw_motion.data(),raw_motion.size(),raw_camera.data(),raw_camera.size(),error,sizeof(error)),error);
     std::vector<float> body(uint64_t(count)*76*3),identity(uint64_t(count)*45),scales(uint64_t(count)*69),
         orient_camera(uint64_t(count)*3),translation_camera(uint64_t(count)*3),orient_world(uint64_t(count)*3),translation_world(uint64_t(count)*3);
     gemx_motion_view motion{count,body.data(),identity.data(),scales.data(),orient_camera.data(),translation_camera.data(),orient_world.data(),translation_world.data()};
-    api(gemx_infer_motion(session.get(),&input,&motion,error,sizeof(error)),error);
+    api(gemx_decode_predictions(session.get(),&input,raw_motion.data(),raw_motion.size(),raw_camera.data(),raw_camera.size(),&motion,error,sizeof(error)),error);
+    if(contact)api(gemx_refine_contacts(session.get(),&motion,contact_logits.data(),contact_logits.size(),error,sizeof(error)),error);
     std::vector<float> positions(uint64_t(count)*77*3),rotations(uint64_t(count)*77*4),translations(uint64_t(count)*77*3);std::array<int32_t,77> parents{};
     gemx_skeleton_view skeleton{count,positions.data(),rotations.data(),parents.data(),translations.data()};
     api(gemx_build_skeleton(session.get(),&motion,&skeleton,error,sizeof(error)),error);
+    // The exported animation uses world-space trajectory, while a source-image
+    // overlay needs the articulated body under the checkpoint's camera
+    // orientation and translation. Build that second position stream once.
+    std::vector<float> camera_positions(uint64_t(count)*77*3),camera_root(uint64_t(count)*3);
+    std::vector<float> camera_rotations(uint64_t(count)*77*4),camera_translations(uint64_t(count)*77*3);
+    std::array<int32_t,77> camera_parents{};
+    gemx_motion_view camera_motion{count,body.data(),identity.data(),scales.data(),orient_camera.data(),
+        translation_camera.data(),orient_camera.data(),camera_root.data()};
+    gemx_skeleton_view camera_skeleton{count,camera_positions.data(),camera_rotations.data(),
+        camera_parents.data(),camera_translations.data()};
+    api(gemx_build_skeleton(session.get(),&camera_motion,&camera_skeleton,error,sizeof(error)),error);
+    if(camera_parents!=parents)throw std::runtime_error("camera and world skeleton topology differ");
     std::error_code filesystem_error;std::filesystem::create_directories(argv[10],filesystem_error);
     if(filesystem_error)throw std::runtime_error("cannot create sequence output directory");
+    save_predictions((std::filesystem::path(argv[10])/"predictions.bin").string(),count,raw_motion,raw_camera);
     for(uint32_t i=0;i<count;++i){pose_sample sample;
         std::copy_n(positions.data()+uint64_t(i)*77*3,77*3,sample.positions.data());
+        std::copy_n(camera_positions.data()+uint64_t(i)*77*3,77*3,sample.camera_positions.data());
         std::copy_n(rotations.data()+uint64_t(i)*77*4,77*4,sample.rotations.data());
         std::copy_n(translations.data()+uint64_t(i)*77*3,77*3,sample.local_translations.data());sample.parents=parents;
         std::copy_n(translation_camera.data()+uint64_t(i)*3,3,sample.camera.data());std::copy_n(keypoints.data()+uint64_t(i)*77*3,77*3,sample.keypoints.data());
@@ -368,6 +414,75 @@ int offline_sequence(int argc,char **argv){
     }
     const auto glb=std::filesystem::path(argv[10])/"motion.glb";
     api(gemx_export_skeleton_samples_glb(session.get(),&skeleton,real(argv[11]),glb.c_str(),error,sizeof(error)),error);
+    return 0;
+}
+
+// Resident camera worker. Only observations are buffered; RGB frames and pose
+// files are overwritten, so an arbitrarily long live session stays bounded.
+int live_worker(int argc,char **argv){
+    if(argc!=12)throw std::invalid_argument("usage: gemx-pipeline --live-worker DENOISER VITPOSE YOLOX MODULE CPU|Vulkan DEVICE DESCRIPTION|- THREADS WINDOW DIRECTORY");
+    const uint32_t threads=number(argv[9]),window=number(argv[10]);
+    if(threads<1||threads>8||window<2||window>120)throw std::invalid_argument("threads 1..8 and window 2..120 required");
+    char error[512]{};
+    auto cfg=config(argv[2],argv[5],argv[6],argv[8],number(argv[7]),threads,window);
+    gemx_session *raw=nullptr;api(gemx_session_create_live(&cfg,&raw,error,sizeof(error)),error);
+    session_ptr session(raw,gemx_session_destroy);
+    cfg.model_path=argv[3];cfg.graph_cache_capacity=1;
+    gemx_vitpose *vp=nullptr;api(gemx_vitpose_create(&cfg,&vp,error,sizeof(error)),error);
+    vitpose_ptr pose(vp,gemx_vitpose_destroy);
+    cfg.model_path=argv[4];gemx_yolox *yp=nullptr;
+    api(gemx_yolox_create(&cfg,&yp,error,sizeof(error)),error);yolox_ptr detector(yp,gemx_yolox_destroy);
+    struct observation {std::array<float,231> keypoints;std::array<float,3> box;};
+    std::deque<observation> history;
+    auto previous=std::chrono::steady_clock::now();uint32_t width=0,height=0;
+    const auto dir=std::filesystem::path(argv[11]);
+    std::cout<<"READY"<<std::endl;
+    std::string command;
+    while(std::getline(std::cin,command)){
+        if(command=="RESET"){history.clear();std::cout<<"RESET"<<std::endl;continue;}
+        if(command!="FRAME")throw std::invalid_argument("invalid live command");
+        const auto image=load_image((dir/"frame.input").string());
+        if(image.width!=width||image.height!=height||std::chrono::steady_clock::now()-previous>std::chrono::seconds(2))history.clear();
+        width=image.width;height=image.height;
+        gemx_rgb_frame frame{image.rgb.data(),image.rgb.size(),width,height,image.stride,{}};
+        std::array<gemx_detection,100> detections{};uint32_t detected=0;
+        api(gemx_yolox_detect(detector.get(),&frame,.5f,.45f,detections.data(),detections.size(),&detected,error,sizeof(error)),error);
+        // Upstream recreates ByteTrack each frame: largest area wins.
+        std::array<float,4> box{0,0,float(width-1),float(height-1)};float area=-1;
+        for(uint32_t i=0;i<detected;++i){const auto &b=detections[i].box;float a=std::max(0.f,b[2]-b[0])*std::max(0.f,b[3]-b[1]);
+            if(a>area){area=a;std::copy_n(b,4,box.data());}}
+        for(int i=0;i<4;++i)box[i]=std::clamp(box[i],0.f,float(i%2?height-1:width-1));
+        observation current{};current.box={(box[0]+box[2])*.5f,(box[1]+box[3])*.5f,std::max(box[3]-box[1],(box[2]-box[0])/.75f)*1.2f};
+        std::copy(current.box.begin(),current.box.end(),frame.box);
+        api(gemx_vitpose_infer_rgb(pose.get(),&frame,1,current.keypoints.data(),231,error,sizeof(error)),error);
+        history.push_back(current);if(history.size()>window)history.pop_front();
+        const uint32_t n=history.size();
+        if(n<2){previous=std::chrono::steady_clock::now();std::cout<<"WARMUP "<<detected<<std::endl;continue;}
+        std::vector<float> kp(n*231),boxes(n*3),K(n*9),angular(n*6);
+        for(uint32_t i=0;i<n;++i){
+            std::copy(history[i].keypoints.begin(),history[i].keypoints.end(),kp.begin()+i*231);
+            std::copy(history[i].box.begin(),history[i].box.end(),boxes.begin()+i*3);
+            const float f=float(std::max(width,height));const std::array<float,9> k{f,0,width*.5f,0,f,height*.5f,0,0,1};
+            std::copy(k.begin(),k.end(),K.begin()+i*9);angular[i*6]=angular[i*6+4]=1;
+        }
+        gemx_sequence_view input{n,kp.data(),boxes.data(),K.data(),nullptr,angular.data()};
+        std::vector<float> body(n*228),identity(n*45),scales(n*69),oc(n*3),tc(n*3),ow(n*3),tw(n*3);
+        gemx_motion_view motion{n,body.data(),identity.data(),scales.data(),oc.data(),tc.data(),ow.data(),tw.data()};
+        api(gemx_infer_motion(session.get(),&input,&motion,error,sizeof(error)),error);
+        // Decode the complete context, then build ONLY its newest frame. This
+        // preserves upstream's per-frame shape and gravity-aligned orientation.
+        const uint32_t last=n-1;std::array<float,3> origin{};pose_sample sample;
+        gemx_motion_view newest{1,body.data()+last*228,identity.data()+last*45,scales.data()+last*69,
+            oc.data()+last*3,tc.data()+last*3,ow.data()+last*3,origin.data()};
+        gemx_skeleton_view skeleton{1,sample.positions.data(),sample.rotations.data(),sample.parents.data(),sample.local_translations.data()};
+        api(gemx_build_skeleton(session.get(),&newest,&skeleton,error,sizeof(error)),error);
+        pose_sample camera_sample;newest.global_orient_world=newest.global_orient_camera;
+        gemx_skeleton_view camera_skeleton{1,sample.camera_positions.data(),camera_sample.rotations.data(),nullptr,camera_sample.local_translations.data()};
+        api(gemx_build_skeleton(session.get(),&newest,&camera_skeleton,error,sizeof(error)),error);
+        sample.keypoints=current.keypoints;std::copy_n(newest.translation_camera,3,sample.camera.data());
+        save_pose((dir/"pose.gpose").string(),sample);
+        previous=std::chrono::steady_clock::now();std::cout<<"POSE "<<detected<<std::endl;
+    }
     return 0;
 }
 
@@ -399,8 +514,9 @@ int export_sequence(int argc,char **argv){
 
 int main(int argc,char **argv){
     try{
+        if(argc>1&&!std::strcmp(argv[1],"--live-worker"))return live_worker(argc,argv);
         if(argc>1&&!std::strcmp(argv[1],"--detect"))return detect_sequence(argc,argv);
-        if(argc>1&&!std::strcmp(argv[1],"--offline"))return offline_sequence(argc,argv);
+        if(argc>1&&(!std::strcmp(argv[1],"--offline")||!std::strcmp(argv[1],"--offline-contact")))return offline_sequence(argc,argv);
         if(argc>1&&!std::strcmp(argv[1],"--export"))return export_sequence(argc,argv);
         throw std::invalid_argument("expected --detect, --offline, or --export");
     }catch(const std::exception &error){std::fprintf(stderr,"%s\n",error.what());return 1;}

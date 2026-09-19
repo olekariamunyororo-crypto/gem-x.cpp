@@ -141,6 +141,8 @@ def main() -> None:
                         help="safe NPZ emitted by extract_soma_identity.py")
     parser.add_argument("--gguf-py", type=Path,
                         help="llama.cpp gguf-py directory (or install the gguf package)")
+    parser.add_argument("--checkpoint", type=Path,
+                        help="Optional hash-verified official checkpoint for the omitted contact head")
     args = parser.parse_args()
     if args.gguf_py:
         sys.path.insert(0, str(args.gguf_py.resolve()))
@@ -210,14 +212,28 @@ def main() -> None:
         converted[f"{prefix}.qkv.bias"]=np.ascontiguousarray(np.concatenate([
             converted.pop(f"{prefix}.query.bias"),converted.pop(f"{prefix}.key.bias"),
             converted.pop(f"{prefix}.value.bias")],axis=0))
+    # The absent-image branch masks the projected feature before its existence
+    # MLP. Its entire contribution is constant, independent of the input token.
+    bias = converted["image.exists.0.bias"]
+    hidden = bias / (1 + np.exp(-bias))
+    converted["image.absent"] = np.ascontiguousarray(
+        converted["image.exists.2.weight"] @ hidden + converted["image.exists.2.bias"])
     # The released regression path always marks these conditions present. Fold
     # the constant final input column into the first-layer bias exactly once.
     for condition in ("cliff","image","angular"):
         weight=converted[f"{condition}.exists.0.weight"]
         if weight.shape!=(512,513):
             raise ValueError(f"unexpected {condition} presence projection")
-        converted[f"{condition}.exists.0.bias"]=np.ascontiguousarray(
-            converted[f"{condition}.exists.0.bias"]+weight[:,512])
+        if condition == "cliff":
+            # The released checkpoint suppresses the box-camera condition when
+            # a frame has fewer than four confident 2D joints. The published
+            # ONNX export accidentally hard-codes this presence input to one.
+            # Preserve the column so native inference can follow checkpoint
+            # semantics on lost detections.
+            converted["cliff.exists.presence"] = np.ascontiguousarray(weight[:,512,None])
+        else:
+            converted[f"{condition}.exists.0.bias"]=np.ascontiguousarray(
+                converted[f"{condition}.exists.0.bias"]+weight[:,512])
         converted[f"{condition}.exists.0.weight"]=np.ascontiguousarray(weight[:,:512])
     # Regression export fixes xt to zero. Its 585 columns therefore have no
     # effect; retaining only the condition columns removes 1.2 MiB and one
@@ -228,7 +244,9 @@ def main() -> None:
     converted["time.position"] = np.ascontiguousarray(
         np.asarray(tensors["val_159"], dtype=np.float32)[999, 0])
     converted["motion.mean"] = np.ascontiguousarray(np.asarray(stats["mean"],dtype=np.float32))
-    converted["motion.std"] = np.ascontiguousarray(np.asarray(stats["std"],dtype=np.float32))
+    # configs/endecoder/v2_soma_local_cam.yaml sets clip_std: true.
+    converted["motion.std"] = np.ascontiguousarray(
+        np.maximum(np.asarray(stats["std"], dtype=np.float32), 1.0))
     converted["soma.rest_local"] = np.ascontiguousarray(soma_local)
     converted["soma.rest_world"] = np.ascontiguousarray(soma_world)
     converted["soma.parents"] = np.ascontiguousarray(soma_parents)
@@ -307,8 +325,21 @@ def main() -> None:
     for name, expected in EXPECTED_SHAPES.items():
         if converted[name].shape != expected:
             raise ValueError(f"{name} shape {converted[name].shape} != {expected}")
-    if len(converted) != 245:
-        raise ValueError(f"expected 245 model tensors, found {len(converted)}")
+    if args.checkpoint:
+        if digest(args.checkpoint) != "4c1f85ca8c1e11e6588aead49fbc024bf660708def670043e0b537c101ee298e":
+            raise ValueError("Contact head requires the pinned official checkpoint")
+        import torch
+        checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)["state_dict"]
+        for layer, shape in (("0", (512, 512)), ("2", (6, 512))):
+            source = "pipeline.denoiser3d.denoiser.static_conf_head.fc" + ("1" if layer == "0" else "2")
+            for suffix, expected in (("weight", shape), ("bias", (shape[0],))):
+                value = checkpoint[source + "." + suffix].float().numpy()
+                if value.shape != expected or not np.isfinite(value).all():
+                    raise ValueError("Invalid contact head tensor")
+                converted["contact.mlp." + layer + "." + suffix] = np.ascontiguousarray(value)
+    expected_count = 251 if args.checkpoint else 247
+    if len(converted) != expected_count:
+        raise ValueError(f"expected {expected_count} model tensors, found {len(converted)}")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     writer = gguf.GGUFWriter(str(args.output), arch="gemx")

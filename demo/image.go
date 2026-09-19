@@ -37,7 +37,10 @@ func packImage(im image.Image) []byte {
 	binary.LittleEndian.PutUint32(out[12:], uint32(h))
 	binary.LittleEndian.PutUint32(out[16:], uint32(w*3))
 	box := [4]float32{0, 0, float32(w), float32(h)}
-	focal := float32(max(w, h))
+	// SAM 3D Body's prepare_batch uses the image diagonal when no calibrated
+	// camera is supplied. GEM-X independently uses max(width,height) below;
+	// these two published defaults are deliberately different.
+	focal := float32(math.Hypot(float64(w), float64(h)))
 	camera := [4]float32{focal, focal, float32(w) / 2, float32(h) / 2}
 	for i, v := range box {
 		binary.LittleEndian.PutUint32(out[20+i*4:], math.Float32bits(v))
@@ -84,8 +87,17 @@ func patchPackedBox(data []byte, box [4]float32) error {
 }
 
 func bodyBox(box [4]float32) [4]float32 {
+	xys := observationBox(box)
+	cx, cy, size := xys[0], xys[1], xys[2]
+	return [4]float32{cx - size*.5, cy - size*.5, cx + size*.5, cy + size*.5}
+}
+
+func observationBox(box [4]float32) [3]float32 {
 	w, h := box[2]-box[0], box[3]-box[1]
+	// This is GEM-X get_bbx_xys_from_xyxy(base_enlarge=1.2): fit the detector
+	// box to the published 192:256 prior, then enlarge it and make it square.
+	// SAM 3D Body applies its own preprocessing transform to this supplied box.
 	size := max(h, w/.75) * 1.2
 	cx, cy := (box[0]+box[2])*.5, (box[1]+box[3])*.5
-	return [4]float32{cx - size*.5, cy - size*.5, cx + size*.5, cy + size*.5}
+	return [3]float32{cx, cy, size}
 }

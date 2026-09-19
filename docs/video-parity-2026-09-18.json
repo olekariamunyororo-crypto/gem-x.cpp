@@ -1,0 +1,177 @@
+{
+  "scope": "One video; numerical parity, not ground truth quality",
+  "upstream": "generated/reference/e2e/audit-20260918/independent-upstream/hpe_results_nopost.pt",
+  "upstream_sha256": "ca369ff7b7245dc13d811733c654addf6bb8abe4a69fc578b49f9c8d81e821b0",
+  "frames": 72,
+  "runs": {
+    "bf16": {
+      "path": "generated/reference/e2e/audit-20260918/fresh-native/bf16/final-output",
+      "predictions_sha256": "382070f04d8745dcc89af1c74cca8e1e9799d88d3f1368119f32be640f113160",
+      "raw_motion": {
+        "maximum": 0.18394722044467926,
+        "mean": 0.006369828259814284,
+        "rms": 0.012877196059193251
+      },
+      "raw_camera": {
+        "maximum": 0.03950241208076477,
+        "mean": 0.006625451622918869,
+        "rms": 0.009492462589921266
+      },
+      "world_joints_mm": {
+        "mean": 144.36653966003917,
+        "p95": 326.66624990426067,
+        "maximum": 409.52535367470034,
+        "worst_index": [
+          71,
+          73
+        ]
+      },
+      "pelvis_relative_world_joints_mm": {
+        "mean": 24.940445651431077,
+        "p95": 72.39631017743807,
+        "maximum": 209.29432262172384,
+        "worst_index": [
+          27,
+          56
+        ]
+      },
+      "camera_joints_mm": {
+        "mean": 50.43045784092477,
+        "p95": 118.68622066382913,
+        "maximum": 221.05934433646573,
+        "worst_index": [
+          65,
+          51
+        ]
+      },
+      "pelvis_relative_camera_joints_mm": {
+        "mean": 24.33191704572299,
+        "p95": 71.24283968228582,
+        "maximum": 214.14305979287641,
+        "worst_index": [
+          27,
+          56
+        ]
+      },
+      "keypoint_xy_pixels": {
+        "mean": 1.638091695886044,
+        "p95": 2.043929885774032,
+        "maximum": 87.50282824433044,
+        "worst_index": [
+          2,
+          26
+        ]
+      },
+      "keypoint_confidence": {
+        "maximum": 0.2907228469848633,
+        "mean": 0.010433814017902415,
+        "rms": 0.026395295640333206
+      },
+      "body_token": {
+        "maximum": 0.7599997520446777,
+        "mean": 0.016459420597714804,
+        "rms": 0.03760150670467617
+      },
+      "detector_box_coordinates_pixels": {
+        "maximum": 0.155670166015625,
+        "mean": 0.042844255765279136,
+        "rms": 0.06689806743782474
+      },
+      "input_rgb_sha256": "c940f48263ce9f16e08f409868a4f944158edab999b4d47c1f90d9aebfeafef0"
+    },
+    "f32": {
+      "path": "generated/reference/e2e/audit-20260918/fresh-native/f32/final-output",
+      "predictions_sha256": "45ea631e7562bfb5395bec709eedaca36ac1cefa4ca57855b39ba854345349d4",
+      "raw_motion": {
+        "maximum": 0.18236693739891052,
+        "mean": 0.006355727072529992,
+        "rms": 0.012816797735672389
+      },
+      "raw_camera": {
+        "maximum": 0.03974181413650513,
+        "mean": 0.0065922515997145735,
+        "rms": 0.009471886632333405
+      },
+      "world_joints_mm": {
+        "mean": 146.9148923533448,
+        "p95": 331.58442580191576,
+        "maximum": 415.7810353299588,
+        "worst_index": [
+          71,
+          73
+        ]
+      },
+      "pelvis_relative_world_joints_mm": {
+        "mean": 24.610724212753524,
+        "p95": 72.32017122549004,
+        "maximum": 204.38989745394346,
+        "worst_index": [
+          27,
+          56
+        ]
+      },
+      "camera_joints_mm": {
+        "mean": 49.44113722637959,
+        "p95": 115.12185477240249,
+        "maximum": 223.83088373074023,
+        "worst_index": [
+          65,
+          51
+        ]
+      },
+      "pelvis_relative_camera_joints_mm": {
+        "mean": 24.045448105058444,
+        "p95": 71.03163322755967,
+        "maximum": 209.13637626817115,
+        "worst_index": [
+          27,
+          56
+        ]
+      },
+      "keypoint_xy_pixels": {
+        "mean": 1.638091695886044,
+        "p95": 2.043929885774032,
+        "maximum": 87.50282824433044,
+        "worst_index": [
+          2,
+          26
+        ]
+      },
+      "keypoint_confidence": {
+        "maximum": 0.2907228469848633,
+        "mean": 0.010433814017902415,
+        "rms": 0.026395295640333206
+      },
+      "body_token": {
+        "maximum": 0.8166661262512207,
+        "mean": 0.017060924901730903,
+        "rms": 0.03934875742161316
+      },
+      "detector_box_coordinates_pixels": {
+        "maximum": 0.155670166015625,
+        "mean": 0.042844255765279136,
+        "rms": 0.06689806743782474
+      },
+      "input_rgb_sha256": "c940f48263ce9f16e08f409868a4f944158edab999b4d47c1f90d9aebfeafef0"
+    }
+  },
+  "date": "2026-09-18",
+  "reference_environment": {
+    "frames": 72,
+    "rgb_sha256": "c940f48263ce9f16e08f409868a4f944158edab999b4d47c1f90d9aebfeafef0",
+    "opencv": "4.11.0",
+    "onnxruntime": "1.23.2",
+    "torch": "2.7.1+cu128",
+    "body_batch": 1,
+    "vitpose_batch": 1,
+    "detector_score_threshold": 0.5,
+    "detector_nms_threshold": 0.45,
+    "timings_including_load": {
+      "detector_seconds": 35.29889072524384,
+      "vitpose_seconds": 8.320830097887665,
+      "body_seconds": 28.7424744409509,
+      "hpe_results_nopost.pt": 0.18428622605279088,
+      "hpe_results.pt": 4.257386291399598
+    }
+  }
+}

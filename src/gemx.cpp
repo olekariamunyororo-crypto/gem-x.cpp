@@ -22,6 +22,18 @@ gemx_status gemx_session_create(const gemx_session_config *config,gemx_session *
 
 void gemx_session_destroy(gemx_session *session){delete session;}
 
+gemx_status gemx_session_create_live(const gemx_session_config *config,gemx_session **output,
+    char *error,uint64_t capacity){
+    return gemx::boundary(error,capacity,[&]{
+        gemx::require(output,"session output is required");
+        *output=nullptr;
+        gemx::require(config,"session config is required");
+        auto result=std::make_unique<gemx_session>();
+        result->implementation=std::make_unique<gemx::session>(*config,true);
+        *output=result.release();
+    });
+}
+
 gemx_status gemx_infer(gemx_session *session,const gemx_sequence_view *input,
     float *pred_x,uint64_t pred_x_count,float *pred_camera,uint64_t pred_camera_count,
     char *error,uint64_t capacity){
@@ -40,6 +52,27 @@ gemx_status gemx_session_get_profile(const gemx_session *session,gemx_profile *p
     return gemx::boundary(error,capacity,[&]{
         gemx::require(session && session->implementation && profile,"session and profile are required");
         *profile=session->implementation->profile();
+    });
+}
+
+gemx_status gemx_infer_contacts(gemx_session *session,const gemx_sequence_view *input,
+    float *motion,uint64_t motion_count,float *camera,uint64_t camera_count,
+    float *contacts,uint64_t contact_count,char *error,uint64_t capacity){
+    return gemx::boundary(error,capacity,[&]{
+        gemx::require(session && session->implementation && input && motion && camera && contacts,
+                      "session, input and all output arrays required");
+        gemx::require(motion_count==uint64_t(input->frames)*585 && camera_count==uint64_t(input->frames)*3 &&
+                      contact_count==uint64_t(input->frames)*6,"contact inference output counts do not match frames");
+        session->implementation->infer(*input,motion,camera,contacts);
+    });
+}
+
+gemx_status gemx_refine_contacts(gemx_session *session,const gemx_motion_view *motion,
+    const float *contacts,uint64_t contact_count,char *error,uint64_t capacity){
+    return gemx::boundary(error,capacity,[&]{
+        gemx::require(session && session->implementation && motion && contacts,"session, motion and contacts required");
+        gemx::require(contact_count==uint64_t(motion->frames)*6,"contact count does not match frames");
+        session->implementation->refine_contacts(*motion,contacts);
     });
 }
 
