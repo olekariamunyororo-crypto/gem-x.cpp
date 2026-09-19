@@ -5,6 +5,7 @@ include(GNUInstallDirs)
 option(GEMX_SANITIZERS "Enable ASan and UBSan" ON)
 option(GEMX_VULKAN "Build the GGML Vulkan backend" OFF)
 option(GEMX_ENABLE_GGML "Build learned GEM-X inference" ON)
+option(GEMX_VITPOSE_TILES "Use validated RTX 5070 Ti live ViTPose F32 tiles" ON)
 
 if(GEMX_ENABLE_GGML)
   if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ggml/CMakeLists.txt")
@@ -19,6 +20,9 @@ if(GEMX_ENABLE_GGML)
   set(GGML_BUILD_TESTS OFF CACHE BOOL "GGML tests" FORCE)
   set(GGML_BUILD_EXAMPLES OFF CACHE BOOL "GGML examples" FORCE)
   add_subdirectory(ggml)
+  if(GEMX_VULKAN AND GEMX_VITPOSE_TILES)
+    include(cmake/vitpose-vulkan-tiles.cmake)
+  endif()
 endif()
 
 add_library(gemx SHARED

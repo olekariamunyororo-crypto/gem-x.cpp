@@ -1,5 +1,8 @@
 # ViTPose GPU profile — 2026-09-19
 
+Subsequent [tile-size experiments and the validated optimization](VITPOSE-TILE-TUNING.md)
+use this report as the baseline.
+
 ViTPose is primarily limited by its F32 matrix multiplications. A live-sized
 inference takes **62.06 ms**, with **98–99% GPU activity**. Feed-forward matrix
 multiplications consume **57.1%** of the measured GPU span. Transfers are small;

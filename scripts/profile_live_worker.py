@@ -33,6 +33,7 @@ def main():
     p.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     p.add_argument('--binary', type=Path)
     p.add_argument('--library-dir', type=Path)
+    p.add_argument('--module', type=Path, help='Isolated backend module for kernel experiments')
     p.add_argument('--frames', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--repeats', type=int, default=3)
@@ -56,7 +57,7 @@ def main():
     cmd = [str((a.binary or a.root/'build/vulkan/gemx-pipeline').resolve()), '--live-worker']
     cmd += [str(a.root/'generated/reference'/name) for name in
             ('gem-x-contact-f32.gguf','vitpose-f32.gguf','yolox-f32.gguf')]
-    cmd += [str(a.root/'build/vulkan/bin/libggml-vulkan.so'),'Vulkan','0','NVIDIA GeForce RTX 5070 Ti','8','30',str(a.output)]
+    cmd += [str((a.module or a.root/'build/vulkan/bin/libggml-vulkan.so').resolve()),'Vulkan','0','NVIDIA GeForce RTX 5070 Ti','8','30',str(a.output)]
     started = time.monotonic()
     hashes = []
     with (a.output/'worker.log').open('w') as log:

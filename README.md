@@ -67,6 +67,13 @@ portable CPU variants, including AVX2 and AVX-512 variants where supported by
 the compiler, and GGML selects the best compatible module at runtime. Vulkan is
 available through the `vulkan` preset. Keep compilation at eight jobs or fewer.
 
+The Vulkan build includes a narrowly scoped, parity-checked ViTPose tile
+selection for strict F32 live inference on RTX 5070 Ti. It operates on a
+build-directory copy of GGML; the upstream submodule stays unchanged.
+Set `GEMX_VITPOSE_TILES=0` at runtime or configure with
+`-DGEMX_VITPOSE_TILES=OFF` to use upstream selection. See the
+[tile experiment and validation](docs/VITPOSE-TILE-TUNING.md).
+
 Runtime inference uses GGUF files produced from hash-verified official assets.
 PyTorch, ONNX Runtime, OpenCV, and Python are conversion/reference dependencies;
 the installed runtime library does not depend on them. Asset identities and
