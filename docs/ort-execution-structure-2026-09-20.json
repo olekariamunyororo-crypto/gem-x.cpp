@@ -1,0 +1,396 @@
+{
+  "date": "2026-09-20",
+  "scope": "Last model_run in ORT host operation trace; node counts are not GPU kernel counts; durations are not GPU timings",
+  "models": {
+    "vitpose": {
+      "trace": "generated/ort-structure-20260920/vitpose_2026-09-20_06-48-46.json",
+      "runs": 5,
+      "warmups": 2,
+      "iterations": 3,
+      "tf32": 0,
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "ort_version": "1.23.2",
+      "provider_options": {
+        "CPUExecutionProvider": {},
+        "CUDAExecutionProvider": {
+          "sdpa_kernel": "0",
+          "use_tf32": "0",
+          "fuse_conv_bias": "0",
+          "prefer_nhwc": "0",
+          "tunable_op_max_tuning_duration_ms": "0",
+          "enable_skip_layer_norm_strict_mode": "0",
+          "tunable_op_tuning_enable": "0",
+          "tunable_op_enable": "0",
+          "use_ep_level_unified_stream": "0",
+          "device_id": "0",
+          "has_user_compute_stream": "0",
+          "gpu_external_empty_cache": "0",
+          "cudnn_conv_algo_search": "EXHAUSTIVE",
+          "cudnn_conv1d_pad_to_nc1d": "0",
+          "gpu_mem_limit": "18446744073709551615",
+          "gpu_external_alloc": "0",
+          "gpu_external_free": "0",
+          "arena_extend_strategy": "kNextPowerOfTwo",
+          "do_copy_in_default_stream": "1",
+          "enable_cuda_graph": "0",
+          "user_compute_stream": "0",
+          "cudnn_conv_use_max_workspace": "1"
+        }
+      },
+      "node_count": 1816,
+      "ops": {
+        "Shape": 33,
+        "Concat": 200,
+        "Expand": 2,
+        "Conv": 2,
+        "Reshape": 132,
+        "Transpose": 162,
+        "LayerNormalization": 64,
+        "MatMul": 192,
+        "Add": 287,
+        "Split": 160,
+        "Squeeze": 96,
+        "Neg": 64,
+        "Mul": 224,
+        "Slice": 97,
+        "FusedMatMul": 32,
+        "Softmax": 32,
+        "QuickGelu": 32,
+        "SkipLayerNormalization": 1,
+        "ConvTranspose": 2,
+        "Relu": 2
+      },
+      "providers": {
+        "CUDAExecutionProvider": 1649,
+        "CPUExecutionProvider": 167
+      },
+      "representative_shapes": [
+        {
+          "op": "LayerNormalization",
+          "inputs": [
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            },
+            {
+              "float": [
+                1280
+              ]
+            },
+            {
+              "float": [
+                1280
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            }
+          ]
+        },
+        {
+          "op": "MatMul",
+          "inputs": [
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            },
+            {
+              "float": [
+                1280,
+                3840
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "float": [
+                2,
+                197,
+                3840
+              ]
+            }
+          ]
+        },
+        {
+          "op": "FusedMatMul",
+          "inputs": [
+            {
+              "float": [
+                2,
+                20,
+                197,
+                64
+              ]
+            },
+            {
+              "float": [
+                2,
+                20,
+                64,
+                197
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "float": [
+                2,
+                20,
+                197,
+                197
+              ]
+            }
+          ]
+        },
+        {
+          "op": "MatMul",
+          "inputs": [
+            {
+              "float": [
+                2,
+                20,
+                197,
+                197
+              ]
+            },
+            {
+              "float": [
+                2,
+                20,
+                197,
+                64
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "float": [
+                2,
+                20,
+                197,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "op": "MatMul",
+          "inputs": [
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            },
+            {
+              "float": [
+                1280,
+                1280
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            }
+          ]
+        },
+        {
+          "op": "MatMul",
+          "inputs": [
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            },
+            {
+              "float": [
+                1280,
+                5120
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "float": [
+                2,
+                197,
+                5120
+              ]
+            }
+          ]
+        },
+        {
+          "op": "MatMul",
+          "inputs": [
+            {
+              "float": [
+                2,
+                197,
+                5120
+              ]
+            },
+            {
+              "float": [
+                5120,
+                1280
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            }
+          ]
+        },
+        {
+          "op": "SkipLayerNormalization",
+          "inputs": [
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            },
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            },
+            {
+              "float": [
+                1280
+              ]
+            },
+            {
+              "float": [
+                1280
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "float": [
+                2,
+                197,
+                1280
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "yolox": {
+      "trace": "generated/ort-structure-20260920/yolox_2026-09-20_06-49-19.json",
+      "runs": 5,
+      "warmups": 2,
+      "iterations": 3,
+      "tf32": 0,
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "ort_version": "1.23.2",
+      "provider_options": {
+        "CPUExecutionProvider": {},
+        "CUDAExecutionProvider": {
+          "sdpa_kernel": "0",
+          "use_tf32": "0",
+          "fuse_conv_bias": "0",
+          "prefer_nhwc": "0",
+          "tunable_op_max_tuning_duration_ms": "0",
+          "enable_skip_layer_norm_strict_mode": "0",
+          "tunable_op_tuning_enable": "0",
+          "tunable_op_enable": "0",
+          "use_ep_level_unified_stream": "0",
+          "device_id": "0",
+          "has_user_compute_stream": "0",
+          "gpu_external_empty_cache": "0",
+          "cudnn_conv_algo_search": "EXHAUSTIVE",
+          "cudnn_conv1d_pad_to_nc1d": "0",
+          "gpu_mem_limit": "18446744073709551615",
+          "gpu_external_alloc": "0",
+          "gpu_external_free": "0",
+          "arena_extend_strategy": "kNextPowerOfTwo",
+          "do_copy_in_default_stream": "1",
+          "enable_cuda_graph": "0",
+          "user_compute_stream": "0",
+          "cudnn_conv_use_max_workspace": "1"
+        }
+      },
+      "node_count": 427,
+      "ops": {
+        "Reshape": 12,
+        "Transpose": 13,
+        "Conv": 155,
+        "QuickGelu": 146,
+        "Add": 32,
+        "Concat": 20,
+        "MaxPool": 3,
+        "Resize": 2,
+        "Sigmoid": 2,
+        "Unsqueeze": 7,
+        "Mul": 4,
+        "ReduceMax": 1,
+        "Squeeze": 2,
+        "TopK": 2,
+        "Gather": 14,
+        "Slice": 2,
+        "Exp": 1,
+        "Div": 2,
+        "Sub": 2,
+        "NonMaxSuppression": 1,
+        "Flatten": 1,
+        "Shape": 1,
+        "Less": 1,
+        "Where": 1
+      },
+      "providers": {
+        "CUDAExecutionProvider": 423,
+        "CPUExecutionProvider": 4
+      },
+      "representative_shapes": []
+    }
+  }
+}

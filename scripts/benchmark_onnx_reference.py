@@ -28,8 +28,10 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--tf32',type=int,choices=[0,1],default=0)
     p.add_argument('--iterations',type=int,default=100)
+    p.add_argument('--warmups',type=int,default=20)
+    p.add_argument('--profile',action='store_true',help='Export ORT node execution trace; timings are instrumented')
     a=p.parse_args()
-    if len(os.sched_getaffinity(0))>8 or a.iterations<1:p.error('use at most eight cores and positive iterations')
+    if len(os.sched_getaffinity(0))>8 or a.iterations<1 or a.warmups<0:p.error('use at most eight cores, positive iterations and nonnegative warmups')
     torch.set_num_threads(8);torch.set_num_interop_threads(1)
     if a.kind=='vitpose':
         data=a.input.read_bytes();assert data[:8]==b'VITPREP1'
@@ -47,13 +49,16 @@ def main():
         images=np.ascontiguousarray(padded.transpose(2,0,1)[None],dtype=np.float32)
     options=ort.SessionOptions();options.intra_op_num_threads=8;options.inter_op_num_threads=1
     options.log_severity_level=3
+    if a.profile:
+        options.enable_profiling=True
+        options.profile_file_prefix=str(a.output.with_suffix(''))
     begin=time.perf_counter()
     session=ort.InferenceSession(str(a.model),sess_options=options,
         providers=[('CUDAExecutionProvider',{'use_tf32':a.tf32}),'CPUExecutionProvider'])
     if session.get_providers()[0]!='CUDAExecutionProvider':raise RuntimeError('CUDA provider unavailable; refusing CPU fallback benchmark')
     load=time.perf_counter()-begin
     inputs={session.get_inputs()[0].name:images}
-    for _ in range(20):session.run(None,inputs)
+    for _ in range(a.warmups):session.run(None,inputs)
     timings=[]
     for _ in range(a.iterations):
         begin=time.perf_counter();outputs=session.run(None,inputs)
@@ -63,7 +68,7 @@ def main():
        'tf32':a.tf32,'cpu_affinity':sorted(os.sched_getaffinity(0)),
        'input_shape':list(images.shape),'input_sha256':hashlib.sha256(images.tobytes()).hexdigest(),
        'scope':'ORT session.run, including host transfers; excludes preprocess and native postprocess',
-       'load_seconds':load,'warmups':20,'iterations':a.iterations,
+       'load_seconds':load,'warmups':a.warmups,'iterations':a.iterations,'instrumented':a.profile,
        'mean_ms':statistics.mean(timings),'median_ms':statistics.median(timings),
        'p95_ms':sorted(timings)[min(len(timings)-1,int(.95*len(timings)))],
        'output_shapes':[list(x.shape) for x in outputs],
@@ -74,6 +79,7 @@ def main():
         peaks=outputs[0].reshape(2,77,-1).argmax(-1);ref=expected.reshape(2,77,-1).argmax(-1)
         r['fixture_error']={'max_abs':float(diff.max()),'mean_abs':float(diff.mean()),
                             'changed_raw_heatmap_peaks':int(np.count_nonzero(peaks!=ref))}
+    if a.profile:r['profile_path']=session.end_profiling()
     a.output.write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r),flush=True)
 
 
