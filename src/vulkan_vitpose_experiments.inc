@@ -23,3 +23,20 @@ if (!device->fp16 && !device->coopmat2 && !device->coopmat_support &&
             matmul_f32_f32_fp32_len,matmul_f32_f32_fp32_data,"main",3,sizeof(vk_mat_mat_push_constants),
             {spec[1],spec[2],1},ggml_vk_mul_mm_spec(spec,true),32);
 }
+
+// QKV register-microtile experiments, independent of the expansion tile.
+if (!device->fp16 && !device->coopmat2 && !device->coopmat_support &&
+    strcmp(device->properties.deviceName.data(),"NVIDIA GeForce RTX 5070 Ti")==0) {
+    const char *layout=getenv("GEMX_VITPOSE_QKV_LAYOUT");
+    std::vector<uint32_t> spec;
+    if(layout && strcmp(layout,"128x64-t256")==0) spec={256,128,64,16,32,32,1,4,2,1,32};
+    if(layout && strcmp(layout,"64x64-t128")==0) spec={128,64,64,16,32,32,1,4,2,1,32};
+    if(layout && strcmp(layout,"64x32-t128")==0) spec={128,64,32,16,32,16,1,2,2,1,32};
+    if(layout && strcmp(layout,"128x32-w1")==0) spec={128,128,32,16,32,32,1,4,2,1,32};
+    if(layout && strcmp(layout,"128x128-t256")==0) spec={256,128,128,16,32,64,1,4,4,1,32};
+    if(layout && strcmp(layout,"128x64-w1")==0) spec={128,128,64,16,64,32,1,4,2,1,32};
+    if (!spec.empty())
+        ggml_vk_create_pipeline(device,device->gemx_qkv_pipeline,"gemx_qkv_microtile",
+            matmul_f32_f32_fp32_len,matmul_f32_f32_fp32_data,"main",3,sizeof(vk_mat_mat_push_constants),
+            {spec[1],spec[2],1},ggml_vk_mul_mm_spec(spec,true),32);
+}

@@ -1,0 +1,239 @@
+{
+  "date": "2026-09-20",
+  "device": "RTX 5070 Ti",
+  "cpu_core_limit": 8,
+  "cuda_reference_ms": 41.2046779,
+  "experiments": {
+    "vitpose-qkv-microtiles-20260920": {
+      "input_sha256": "2c77457a659ab0c71e6e6ab0bdb50f3b7fb1ca38352a50719760250be84a5694",
+      "iterations": 80,
+      "warmups": 10,
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "env": {
+        "GGML_VK_DISABLE_F16": "1",
+        "GGML_VK_DISABLE_COOPMAT": "1",
+        "GGML_VK_DISABLE_COOPMAT2": "1",
+        "GEMX_VITPOSE_FLATTEN": "1",
+        "GEMX_VITPOSE_NORM": "1",
+        "GEMX_VITPOSE_SWIGLU": "1",
+        "GEMX_VITPOSE_RECT_GROUP": "up",
+        "GEMX_VITPOSE_RECT": "64x64",
+        "GEMX_BENCHMARK_WARMUP": "10",
+        "GEMX_BENCHMARK_INPUT": "/home/rich/c/gem-x.cpp/generated/vitpose-cuda-match-20260920/input.f32"
+      },
+      "runs": {
+        "baseline": {
+          "mean_ms": 49.364025575,
+          "median_ms": 49.368562499999996,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "128x64-t256": {
+          "mean_ms": 49.96498325,
+          "median_ms": 49.960269999999994,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "64x64-t128": {
+          "mean_ms": 48.9714549875,
+          "median_ms": 48.9023045,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "64x32-t128": {
+          "mean_ms": 49.82280725,
+          "median_ms": 49.8705075,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "128x32-w1": {
+          "mean_ms": 49.2491655625,
+          "median_ms": 49.282391000000004,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "128x128-t256": {
+          "mean_ms": 51.3288215625,
+          "median_ms": 51.3714205,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "128x64-w1": {
+          "mean_ms": 50.0139236,
+          "median_ms": 49.9573295,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "baseline-repeat": {
+          "mean_ms": 49.7561352625,
+          "median_ms": 49.7497245,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        }
+      }
+    },
+    "vitpose-projection-combined-20260920": {
+      "input_sha256": "2c77457a659ab0c71e6e6ab0bdb50f3b7fb1ca38352a50719760250be84a5694",
+      "iterations": 200,
+      "warmups": 10,
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "env": {
+        "GGML_VK_DISABLE_F16": "1",
+        "GGML_VK_DISABLE_COOPMAT": "1",
+        "GGML_VK_DISABLE_COOPMAT2": "1",
+        "GEMX_VITPOSE_FLATTEN": "1",
+        "GEMX_VITPOSE_NORM": "1",
+        "GEMX_VITPOSE_SWIGLU": "1",
+        "GEMX_VITPOSE_RECT_GROUP": "up",
+        "GEMX_VITPOSE_RECT": "64x64",
+        "GEMX_BENCHMARK_WARMUP": "10",
+        "GEMX_BENCHMARK_INPUT": "/home/rich/c/gem-x.cpp/generated/vitpose-cuda-match-20260920/input.f32"
+      },
+      "runs": {
+        "baseline": {
+          "env": {},
+          "mean_ms": 49.344545265,
+          "median_ms": 49.2930445,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "64x64-t128": {
+          "env": {
+            "GEMX_VITPOSE_QKV_LAYOUT": "64x64-t128"
+          },
+          "mean_ms": 49.097967695,
+          "median_ms": 49.0993665,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "packed-ffn": {
+          "env": {
+            "GEMX_VITPOSE_PACK_FFN": "1"
+          },
+          "mean_ms": 53.246679625,
+          "median_ms": 53.139089999999996,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "packed-ffn-qkv": {
+          "env": {
+            "GEMX_VITPOSE_PACK_FFN": "1",
+            "GEMX_VITPOSE_QKV_LAYOUT": "64x64-t128"
+          },
+          "mean_ms": 52.957825795,
+          "median_ms": 52.974508,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "baseline-repeat": {
+          "env": {},
+          "mean_ms": 49.70228344,
+          "median_ms": 49.745895000000004,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        }
+      },
+      "packed_ffn_tile": "Initial diagnostic: default large tile; superseded by tuned expansion tile follow-up"
+    },
+    "vitpose-packed-tuned-20260920": {
+      "input_sha256": "2c77457a659ab0c71e6e6ab0bdb50f3b7fb1ca38352a50719760250be84a5694",
+      "iterations": 200,
+      "warmups": 10,
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "env": {
+        "GGML_VK_DISABLE_F16": "1",
+        "GGML_VK_DISABLE_COOPMAT": "1",
+        "GGML_VK_DISABLE_COOPMAT2": "1",
+        "GEMX_VITPOSE_FLATTEN": "1",
+        "GEMX_VITPOSE_NORM": "1",
+        "GEMX_VITPOSE_SWIGLU": "1",
+        "GEMX_VITPOSE_RECT_GROUP": "up",
+        "GEMX_VITPOSE_RECT": "64x64",
+        "GEMX_BENCHMARK_WARMUP": "10",
+        "GEMX_BENCHMARK_INPUT": "/home/rich/c/gem-x.cpp/generated/vitpose-cuda-match-20260920/input.f32"
+      },
+      "runs": {
+        "baseline": {
+          "env": {},
+          "mean_ms": 49.78906395,
+          "median_ms": 49.7242725,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "packed-ffn": {
+          "env": {
+            "GEMX_VITPOSE_PACK_FFN": "1"
+          },
+          "mean_ms": 50.772650425,
+          "median_ms": 50.611785,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "packed-ffn-qkv": {
+          "env": {
+            "GEMX_VITPOSE_PACK_FFN": "1",
+            "GEMX_VITPOSE_QKV_LAYOUT": "64x64-t128"
+          },
+          "mean_ms": 50.162623815,
+          "median_ms": 50.0971995,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        },
+        "baseline-repeat": {
+          "env": {},
+          "mean_ms": 49.6869573,
+          "median_ms": 49.6021215,
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "byte_identical": true
+        }
+      }
+    }
+  },
+  "parity": {
+    "qkv": {
+      "frames": 72,
+      "crops_sha256": "cfbd809fb94052360c26e9e0d2d19e6658bd5db77667e77de6de77769ab092e4",
+      "batches": [
+        "2",
+        "8"
+      ],
+      "byte_identical_to": "generated/vitpose-flash-20260920/baseline-crops.json"
+    },
+    "packed-qkv": {
+      "frames": 72,
+      "crops_sha256": "cfbd809fb94052360c26e9e0d2d19e6658bd5db77667e77de6de77769ab092e4",
+      "batches": [
+        "2",
+        "8"
+      ],
+      "byte_identical_to": "generated/vitpose-flash-20260920/baseline-crops.json"
+    }
+  }
+}

@@ -141,6 +141,8 @@ vitpose::vitpose(const gemx_session_config &config){
         model_->u32("gemx.vitpose.joint_count")==77 &&
         model_->f32("gemx.vitpose.layer_norm_epsilon")==1e-6f,
         "unsupported ViTPose model architecture");
+    const char *pack=std::getenv("GEMX_VITPOSE_PACK_FFN");
+    if(pack && std::strcmp(pack,"1")==0)model_->pack_vitpose_gate_up(backend_->buffer_type());
 }
 vitpose::~vitpose()=default;
 
@@ -208,11 +210,17 @@ vitpose::graph_state &vitpose::graph(uint32_t batch){
         attended=linear(ctx,*model_,p+".attn.proj",attended);
         x=ggml_add(ctx,x,ggml_mul(ctx,attended,model_->tensor(p+".ls1.gamma")));
         normalized=norm(ctx,*model_,p+".norm2",x);
-        auto *w1=linear(ctx,*model_,p+".mlp.w1",normalized);
-        auto *w2=linear(ctx,*model_,p+".mlp.w2",normalized);
-        const char *fused_glu=std::getenv("GEMX_VITPOSE_SWIGLU");
-        auto *mlp=fused_glu && std::strcmp(fused_glu,"1")==0 ?
-            ggml_swiglu_split(ctx,w1,w2) : ggml_mul(ctx,ggml_silu(ctx,w1),w2);
+        ggml_tensor *mlp=nullptr;
+        if(model_->contains(p+".mlp.w12.weight")){
+            auto *gate_up=linear(ctx,*model_,p+".mlp.w12",normalized);
+            mlp=ggml_swiglu(ctx,gate_up);
+        }else{
+            auto *w1=linear(ctx,*model_,p+".mlp.w1",normalized);
+            auto *w2=linear(ctx,*model_,p+".mlp.w2",normalized);
+            const char *fused_glu=std::getenv("GEMX_VITPOSE_SWIGLU");
+            mlp=fused_glu && std::strcmp(fused_glu,"1")==0 ?
+                ggml_swiglu_split(ctx,w1,w2) : ggml_mul(ctx,ggml_silu(ctx,w1),w2);
+        }
         mlp=linear(ctx,*model_,p+".mlp.w3",mlp);
         x=ggml_add(ctx,x,ggml_mul(ctx,mlp,model_->tensor(p+".ls2.gamma")));
     }

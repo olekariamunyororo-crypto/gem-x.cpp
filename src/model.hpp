@@ -21,10 +21,13 @@ public:
     uint32_t u32(const char *name) const;
     float f32(const char *name) const;
     std::string string(const char *name) const;
+    void pack_vitpose_gate_up(ggml_backend_buffer_type_t buffer_type);
     std::vector<float> read_f32(const std::string &name) const;
     std::vector<int32_t> read_i32(const std::string &name) const;
     std::vector<std::string> string_array(const char *name) const;
 private:
+    ggml_context *packed_context_=nullptr;
+    ggml_backend_buffer_t packed_buffer_=nullptr;
     gguf_context *gguf_=nullptr;
     ggml_context *context_=nullptr;
     ggml_backend_buffer_t buffer_=nullptr;

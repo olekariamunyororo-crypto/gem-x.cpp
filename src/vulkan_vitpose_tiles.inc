@@ -41,10 +41,14 @@ if (ctx->device->gemx_rect_pipeline && aligned && ne11==394 && ne12*ne13==1 &&
     src0->type==GGML_TYPE_F32 && src1->type==GGML_TYPE_F32 && (ne10==1280 || ne10==5120)) {
     const char *group=getenv("GEMX_VITPOSE_RECT_GROUP");
     if (group && ((strcmp(group,"down")==0 && ne10==5120 && ne01==1280) ||
-                  (strcmp(group,"up")==0 && ne10==1280 && ne01==5120) ||
+                  (strcmp(group,"up")==0 && ne10==1280 && (ne01==5120 || ne01==10240)) ||
                   (strcmp(group,"qkv")==0 && ne01==3840) ||
                   (strcmp(group,"proj")==0 && ne10==1280 && ne01==1280))) pipeline=ctx->device->gemx_rect_pipeline;
 }
+
+if (ctx->device->gemx_qkv_pipeline && aligned && ne10==1280 && ne01==3840 &&
+    ne11==394 && ne12*ne13==1 && src0->type==GGML_TYPE_F32 && src1->type==GGML_TYPE_F32)
+    pipeline=ctx->device->gemx_qkv_pipeline;
 
 // Diagnostic only: expose the selected QKV pipeline and compiler statistics.
 if (getenv("GEMX_VITPOSE_TILES_TRACE") && ne10==1280 && ne01==3840 && ne11==394) {

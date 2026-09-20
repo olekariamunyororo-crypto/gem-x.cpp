@@ -1,6 +1,7 @@
 #include "model.hpp"
 #include "internal.hpp"
 #include <cstdio>
+#include <cstring>
 #include <memory>
 #include <vector>
 
@@ -53,9 +54,42 @@ model::model(const std::string &path,ggml_backend_buffer_type_t buffer_type,
 }
 
 model::~model(){
+    if(packed_buffer_)ggml_backend_buffer_free(packed_buffer_);
+    if(packed_context_)ggml_free(packed_context_);
     if(buffer_)ggml_backend_buffer_free(buffer_);
     if(context_)ggml_free(context_);
     if(gguf_)gguf_free(gguf_);
+}
+
+// Opt-in load-time packing. Original weights remain owned by the model;
+// no concatenation or extra weight transfers occur during inference.
+void model::pack_vitpose_gate_up(ggml_backend_buffer_type_t buffer_type){
+    require(!packed_context_,"ViTPose weights already packed");
+    packed_context_=ggml_init({1024*1024,nullptr,true});
+    if(!packed_context_)throw std::bad_alloc();
+    for(int block=0;block<32;++block){
+        const std::string p="backbone.block."+std::to_string(block)+".mlp.";
+        for(const auto *suffix:{"weight","bias"}){
+            auto *a=tensor(p+"w1."+suffix),*b=tensor(p+"w2."+suffix);
+            require(a->type==GGML_TYPE_F32 && b->type==GGML_TYPE_F32 && ggml_are_same_shape(a,b),"unsupported packed FFN weights");
+            auto *combined=std::strcmp(suffix,"weight")==0 ?
+                ggml_new_tensor_2d(packed_context_,GGML_TYPE_F32,a->ne[0],a->ne[1]*2) :
+                ggml_new_tensor_1d(packed_context_,GGML_TYPE_F32,a->ne[0]*2);
+            const std::string name=p+"w12."+suffix;ggml_set_name(combined,name.c_str());tensors_.emplace(name,combined);
+        }
+    }
+    packed_buffer_=ggml_backend_alloc_ctx_tensors_from_buft(packed_context_,buffer_type);
+    if(!packed_buffer_)throw std::bad_alloc();
+    ggml_backend_buffer_set_usage(packed_buffer_,GGML_BACKEND_BUFFER_USAGE_WEIGHTS);
+    for(int block=0;block<32;++block){
+        const std::string p="backbone.block."+std::to_string(block)+".mlp.";
+        for(const auto *suffix:{"weight","bias"}){
+            auto *a=tensor(p+"w1."+suffix),*b=tensor(p+"w2."+suffix),*combined=tensor(p+"w12."+suffix);
+            const size_t bytes=ggml_nbytes(a);std::vector<unsigned char> host(bytes);
+            ggml_backend_tensor_get(a,host.data(),0,bytes);ggml_backend_tensor_set(combined,host.data(),0,bytes);
+            ggml_backend_tensor_get(b,host.data(),0,bytes);ggml_backend_tensor_set(combined,host.data(),bytes,bytes);
+        }
+    }
 }
 
 ggml_tensor *model::tensor(const std::string &name) const{
