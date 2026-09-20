@@ -76,6 +76,7 @@ def main():
               'clocks.mem', 'temperature.gpu', 'memory.used', 'pstate',
               'clocks_event_reasons.sw_power_cap', 'clocks_event_reasons.hw_thermal_slowdown']
     report = dict(cpu_affinity=sorted(os.sched_getaffinity(0)), warmups=10, module=str(module),
+                  vitpose_env={k:v for k,v in env.items() if k.startswith('GEMX_VITPOSE_')},
                   revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip(),
                   ggml_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root/'ggml', text=True).strip(),
                   input='deterministic normalized synthetic RGB; batch 2 = crop + flip workload shape',

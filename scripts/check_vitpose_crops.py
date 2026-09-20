@@ -22,10 +22,12 @@ def main():
         p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--batches',type=int,nargs='+',default=[2,8],choices=[2,4,6,8])
     p.add_argument('--compare',type=Path)
+    p.add_argument('--save-heatmaps',type=Path,help='Directory for per-batch NPY heatmaps for numerical comparison')
     a=p.parse_args()
     if len(os.sched_getaffinity(0))>8:p.error('restrict affinity to at most eight cores')
     for key in ('GGML_VK_DISABLE_F16','GGML_VK_DISABLE_COOPMAT','GGML_VK_DISABLE_COOPMAT2'):
         os.environ[key]='1'
+    if a.save_heatmaps:a.save_heatmaps.mkdir(parents=True,exist_ok=False)
     crops=np.load(a.crops)
     assert crops.dtype==np.float32 and crops.shape[1:]==(3,256,192)
     lib=c.CDLL(str(a.library.resolve()));handle=c.c_void_p();error=c.create_string_buffer(1024)
@@ -49,6 +51,7 @@ def main():
                     c.c_void_p(heatmaps.ctypes.data),c.c_uint64(heatmaps.size))
                 times.append((time.monotonic()-begin)*1000)
                 hashes.append(hashlib.sha256(heatmaps.tobytes()).hexdigest())
+                if a.save_heatmaps:np.save(a.save_heatmaps/f"batch{batch}-{start:04d}.npy",heatmaps)
             report['batches'][str(batch)]=dict(hashes=hashes,wall_ms=times)
     finally:
         lib.gemx_vitpose_destroy(handle)

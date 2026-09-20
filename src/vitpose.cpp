@@ -166,6 +166,8 @@ vitpose::graph_state &vitpose::graph(uint32_t batch){
     auto *angles=model_->tensor("backbone.rope_angles");
     auto *sin=ggml_sin(ctx,angles),*cos=ggml_cos(ctx,angles);
     constexpr float operand_scale=.3535533905932738f;
+    const char *flash_env=std::getenv("GEMX_VITPOSE_FLASH_ATTN");
+    const bool flash_attention=flash_env && std::strcmp(flash_env,"1")==0;
     for(int block=0;block<32;++block){
         const std::string p="backbone.block."+std::to_string(block);
         auto *normalized=norm(ctx,*model_,p+".norm1",x);
@@ -186,12 +188,23 @@ vitpose::graph_state &vitpose::graph(uint32_t batch){
                 ggml_mul(ctx,ggml_concat(ctx,ggml_neg(ctx,second),first,0),sin));
         };
         q=ggml_cont(ctx,rotate(q));k=ggml_cont(ctx,rotate(k));
-        auto *scores=ggml_mul_mat(ctx,ggml_scale(ctx,k,operand_scale),ggml_scale(ctx,q,operand_scale));
-        ggml_mul_mat_set_prec(scores,GGML_PREC_F32);scores=ggml_soft_max(ctx,scores);
-        auto *attended=ggml_mul_mat(ctx,ggml_cont(ctx,ggml_transpose(ctx,v)),scores);
-        ggml_mul_mat_set_prec(attended,GGML_PREC_F32);
-        attended=ggml_reshape_3d(ctx,ggml_cont(ctx,ggml_permute(ctx,attended,0,2,1,3)),
-            embedding,tokens,batch);
+        ggml_tensor *attended=nullptr;
+        if(flash_attention){
+            // Preserve upstream's separate Q/K scaling and F32 storage. Flash
+            // attention changes the reduction order, so remains opt-in.
+            attended=ggml_flash_attn_ext(ctx,ggml_scale(ctx,q,operand_scale),
+                ggml_scale(ctx,k,operand_scale),v,nullptr,1.f,0.f,0.f);
+            ggml_flash_attn_ext_set_prec(attended,GGML_PREC_F32);
+            // FA already returns [head_dim, heads, tokens, batch].
+            attended=ggml_reshape_3d(ctx,attended,embedding,tokens,batch);
+        }else{
+            auto *scores=ggml_mul_mat(ctx,ggml_scale(ctx,k,operand_scale),ggml_scale(ctx,q,operand_scale));
+            ggml_mul_mat_set_prec(scores,GGML_PREC_F32);scores=ggml_soft_max(ctx,scores);
+            attended=ggml_mul_mat(ctx,ggml_cont(ctx,ggml_transpose(ctx,v)),scores);
+            ggml_mul_mat_set_prec(attended,GGML_PREC_F32);
+            attended=ggml_reshape_3d(ctx,ggml_cont(ctx,ggml_permute(ctx,attended,0,2,1,3)),
+                embedding,tokens,batch);
+        }
         attended=linear(ctx,*model_,p+".attn.proj",attended);
         x=ggml_add(ctx,x,ggml_mul(ctx,attended,model_->tensor(p+".ls1.gamma")));
         normalized=norm(ctx,*model_,p+".norm2",x);

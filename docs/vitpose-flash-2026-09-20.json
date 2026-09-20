@@ -1,0 +1,1371 @@
+{
+  "precision": "F32 storage and accumulation; F16 and cooperative matrices disabled",
+  "env": {
+    "GEMX_VITPOSE_FLATTEN": "1",
+    "GEMX_VITPOSE_NORM": "1",
+    "GEMX_VITPOSE_SWIGLU": "1",
+    "GEMX_VITPOSE_RECT_GROUP": "up",
+    "GEMX_VITPOSE_RECT": "64x64"
+  },
+  "runs": {
+    "baseline": {
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "warmups": 10,
+      "module": "/home/rich/c/gem-x.cpp/build/vulkan/bin/libggml-vulkan.so",
+      "revision": "93a33a1bca19e44b2b66c0b9bef47c2bd14cba6e",
+      "ggml_revision": "e91ded11bdcd78c42f9c8d3978ff6686eb4c1226",
+      "input": "/home/rich/c/gem-x.cpp/generated/vitpose-cuda-match-20260920/input.f32",
+      "device": "name, driver_version, memory.total [MiB], power.limit [W]\nNVIDIA GeForce RTX 5070 Ti, 595.71.05, 16303 MiB, 300.00 W",
+      "runs": {
+        "baseline": {
+          "batch": 2,
+          "iterations": 200,
+          "wall_ms": {
+            "mean": 49.390620345,
+            "median": 49.377946,
+            "p95": 49.731196,
+            "minimum": 48.553971,
+            "maximum": 50.566584
+          },
+          "process_cpu_ms": {
+            "mean": 13.595665,
+            "median": 13.6555,
+            "p95": 14.233,
+            "minimum": 9.166,
+            "maximum": 15.697
+          },
+          "telemetry_samples": 78,
+          "telemetry": {
+            "utilization.gpu": {
+              "mean": 98.2051282051282,
+              "median": 98.0,
+              "p95": 99.0,
+              "minimum": 98.0,
+              "maximum": 99.0
+            },
+            "utilization.memory": {
+              "mean": 20.0,
+              "median": 20.0,
+              "p95": 20.0,
+              "minimum": 20.0,
+              "maximum": 20.0
+            },
+            "power.draw": {
+              "mean": 300.049358974359,
+              "median": 300.05,
+              "p95": 300.45,
+              "minimum": 299.74,
+              "maximum": 300.45
+            },
+            "clocks.sm": {
+              "mean": 2736.9102564102564,
+              "median": 2737.0,
+              "p95": 2760.0,
+              "minimum": 2722.0,
+              "maximum": 2760.0
+            },
+            "clocks.mem": {
+              "mean": 14001.0,
+              "median": 14001.0,
+              "p95": 14001.0,
+              "minimum": 14001.0,
+              "maximum": 14001.0
+            },
+            "temperature.gpu": {
+              "mean": 61.26923076923077,
+              "median": 61.0,
+              "p95": 62.0,
+              "minimum": 60.0,
+              "maximum": 62.0
+            },
+            "memory.used": {
+              "mean": 3480.0,
+              "median": 3480.0,
+              "p95": 3480.0,
+              "minimum": 3480.0,
+              "maximum": 3480.0
+            },
+            "pstate": [
+              "P0"
+            ],
+            "clocks_event_reasons.sw_power_cap": [
+              "Active"
+            ],
+            "clocks_event_reasons.hw_thermal_slowdown": [
+              "Not Active"
+            ]
+          },
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=2 threads=8 load_ms=944.74 infer_ms=49.400 images_per_second=40.49"
+        }
+      },
+      "input_sha256": "2c77457a659ab0c71e6e6ab0bdb50f3b7fb1ca38352a50719760250be84a5694"
+    },
+    "flash": {
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "warmups": 10,
+      "module": "/home/rich/c/gem-x.cpp/build/vulkan/bin/libggml-vulkan.so",
+      "revision": "93a33a1bca19e44b2b66c0b9bef47c2bd14cba6e",
+      "ggml_revision": "e91ded11bdcd78c42f9c8d3978ff6686eb4c1226",
+      "input": "/home/rich/c/gem-x.cpp/generated/vitpose-cuda-match-20260920/input.f32",
+      "device": "name, driver_version, memory.total [MiB], power.limit [W]\nNVIDIA GeForce RTX 5070 Ti, 595.71.05, 16303 MiB, 300.00 W",
+      "runs": {
+        "baseline": {
+          "batch": 2,
+          "iterations": 200,
+          "wall_ms": {
+            "mean": 49.804426735,
+            "median": 49.767545999999996,
+            "p95": 49.940529,
+            "minimum": 49.306919,
+            "maximum": 53.40694
+          },
+          "process_cpu_ms": {
+            "mean": 13.15332,
+            "median": 13.266,
+            "p95": 13.76,
+            "minimum": 4.425,
+            "maximum": 15.471
+          },
+          "telemetry_samples": 80,
+          "telemetry": {
+            "utilization.gpu": {
+              "mean": 98.375,
+              "median": 98.0,
+              "p95": 99.0,
+              "minimum": 98.0,
+              "maximum": 99.0
+            },
+            "utilization.memory": {
+              "mean": 19.0,
+              "median": 19.0,
+              "p95": 19.0,
+              "minimum": 19.0,
+              "maximum": 19.0
+            },
+            "power.draw": {
+              "mean": 300.01775,
+              "median": 300.0,
+              "p95": 300.16,
+              "minimum": 299.9,
+              "maximum": 300.16
+            },
+            "clocks.sm": {
+              "mean": 2693.5,
+              "median": 2692.0,
+              "p95": 2700.0,
+              "minimum": 2692.0,
+              "maximum": 2700.0
+            },
+            "clocks.mem": {
+              "mean": 14001.0,
+              "median": 14001.0,
+              "p95": 14001.0,
+              "minimum": 14001.0,
+              "maximum": 14001.0
+            },
+            "temperature.gpu": {
+              "mean": 63.325,
+              "median": 63.0,
+              "p95": 64.0,
+              "minimum": 63.0,
+              "maximum": 64.0
+            },
+            "memory.used": {
+              "mean": 3463.0,
+              "median": 3463.0,
+              "p95": 3463.0,
+              "minimum": 3463.0,
+              "maximum": 3463.0
+            },
+            "pstate": [
+              "P0"
+            ],
+            "clocks_event_reasons.sw_power_cap": [
+              "Active"
+            ],
+            "clocks_event_reasons.hw_thermal_slowdown": [
+              "Not Active"
+            ]
+          },
+          "heatmaps_sha256": "1cfc993f58f3c6fa17a571438dbb50679fc26fe2a8b7385dd01f0782eb8a0fb6",
+          "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=2 threads=8 load_ms=886.41 infer_ms=49.817 images_per_second=40.15"
+        },
+        "operators": {
+          "batch": 2,
+          "iterations": 30,
+          "wall_ms": {
+            "mean": 51.476400633333334,
+            "median": 51.4576985,
+            "p95": 51.933474,
+            "minimum": 51.143504,
+            "maximum": 52.030592
+          },
+          "process_cpu_ms": {
+            "mean": 3.2221333333333333,
+            "median": 3.193,
+            "p95": 3.683,
+            "minimum": 2.896,
+            "maximum": 3.841
+          },
+          "telemetry_samples": 0,
+          "telemetry": {
+            "utilization.gpu": null,
+            "utilization.memory": null,
+            "power.draw": null,
+            "clocks.sm": null,
+            "clocks.mem": null,
+            "temperature.gpu": null,
+            "memory.used": null,
+            "pstate": null,
+            "clocks_event_reasons.sw_power_cap": null,
+            "clocks_event_reasons.hw_thermal_slowdown": null
+          },
+          "heatmaps_sha256": "1cfc993f58f3c6fa17a571438dbb50679fc26fe2a8b7385dd01f0782eb8a0fb6",
+          "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=2 threads=8 load_ms=865.76 infer_ms=51.483 images_per_second=38.85",
+          "gpu": {
+            "graph_ms": {
+              "mean": 50.139876666666666,
+              "median": 50.164100000000005,
+              "p95": 50.2659,
+              "minimum": 49.8461,
+              "maximum": 50.354800000000004
+            },
+            "samples": 30,
+            "operations": {
+              "ADD": {
+                "count": 292,
+                "total_ms": {
+                  "mean": 2.8378223333333334,
+                  "median": 2.8409950000000004,
+                  "p95": 2.85514,
+                  "minimum": 2.79571,
+                  "maximum": 2.8559
+                },
+                "gflops": null
+              },
+              "CONCAT": {
+                "count": 66,
+                "total_ms": {
+                  "mean": 0.40072,
+                  "median": 0.40083199999999997,
+                  "p95": 0.40208,
+                  "minimum": 0.399296,
+                  "maximum": 0.402176
+                },
+                "gflops": null
+              },
+              "CONT": {
+                "count": 165,
+                "total_ms": {
+                  "mean": 0.7153888,
+                  "median": 0.7144159999999999,
+                  "p95": 0.725664,
+                  "minimum": 0.7056,
+                  "maximum": 0.728
+                },
+                "gflops": null
+              },
+              "CONV_TRANSPOSE_2D M=Cout=256, K=Cin*KW*KH=20480, N=N*OW*OH=1768": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 1.3487113333333334,
+                  "median": 1.3486099999999999,
+                  "p95": 1.35274,
+                  "minimum": 1.34246,
+                  "maximum": 1.35475
+                },
+                "gflops": {
+                  "mean": 13745.336666666666,
+                  "median": 13746.3,
+                  "p95": 13809.2,
+                  "minimum": 13684.0,
+                  "maximum": 13809.2
+                }
+              },
+              "CONV_TRANSPOSE_2D M=Cout=256, K=Cin*KW*KH=4096, N=N*OW*OH=6600": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.8144917333333334,
+                  "median": 0.81408,
+                  "p95": 0.8202240000000001,
+                  "minimum": 0.809984,
+                  "maximum": 0.8212480000000001
+                },
+                "gflops": {
+                  "mean": 16991.9,
+                  "median": 17000.2,
+                  "p95": 17086.2,
+                  "minimum": 16851.8,
+                  "maximum": 17086.2
+                }
+              },
+              "COS": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.002120533333333333,
+                  "median": 0.002048,
+                  "p95": 0.0020800000000000003,
+                  "minimum": 0.002048,
+                  "maximum": 0.004096
+                },
+                "gflops": null
+              },
+              "FLASH_ATTN_EXT dst(64,20,197,2),  q(64,197,20,2),  k(64,197,20,2),  v(64,197,20,2),  m(0,0,0,0)": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 3.893021,
+                  "median": 3.893745,
+                  "p95": 3.9045799999999997,
+                  "minimum": 3.87603,
+                  "maximum": 3.90557
+                },
+                "gflops": {
+                  "mean": 3266.6073333333334,
+                  "median": 3265.995,
+                  "p95": 3276.67,
+                  "minimum": 3256.1,
+                  "maximum": 3280.92
+                }
+              },
+              "GLU": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 0.5221312,
+                  "median": 0.5221760000000001,
+                  "p95": 0.524288,
+                  "minimum": 0.5180159999999999,
+                  "maximum": 0.525408
+                },
+                "gflops": null
+              },
+              "IM2COL": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.006144,
+                  "median": 0.006144,
+                  "p95": 0.006144,
+                  "minimum": 0.006112,
+                  "maximum": 0.006176
+                },
+                "gflops": null
+              },
+              "MUL": {
+                "count": 192,
+                "total_ms": {
+                  "mean": 1.1802526666666666,
+                  "median": 1.180145,
+                  "p95": 1.18243,
+                  "minimum": 1.17853,
+                  "maximum": 1.18352
+                },
+                "gflops": null
+              },
+              "MUL_MAT f32 m=1280 n=384 k=768": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.09830506666666666,
+                  "median": 0.098304,
+                  "p95": 0.098304,
+                  "minimum": 0.098304,
+                  "maximum": 0.09833599999999999
+                },
+                "gflops": {
+                  "mean": 7674.916666666667,
+                  "median": 7675.0,
+                  "p95": 7675.0,
+                  "minimum": 7672.5,
+                  "maximum": 7675.0
+                }
+              },
+              "MUL_MAT f32 m=1280 n=394 k=1280": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 2.4908976666666667,
+                  "median": 2.4921299999999995,
+                  "p95": 2.4962600000000004,
+                  "minimum": 2.47971,
+                  "maximum": 2.50042
+                },
+                "gflops": {
+                  "mean": 16579.53,
+                  "median": 16571.3,
+                  "p95": 16640.9,
+                  "minimum": 16516.4,
+                  "maximum": 16654.3
+                }
+              },
+              "MUL_MAT f32 m=1280 n=394 k=5120": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 9.845730333333334,
+                  "median": 9.846755,
+                  "p95": 9.87837,
+                  "minimum": 9.779969999999999,
+                  "maximum": 9.98906
+                },
+                "gflops": {
+                  "mean": 16783.053333333333,
+                  "median": 16781.15,
+                  "p95": 16861.7,
+                  "minimum": 16542.0,
+                  "maximum": 16895.7
+                }
+              },
+              "MUL_MAT f32 m=3840 n=394 k=1280": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 8.028463666666667,
+                  "median": 8.031324999999999,
+                  "p95": 8.05482,
+                  "minimum": 7.988,
+                  "maximum": 8.05891
+                },
+                "gflops": {
+                  "mean": 15431.816666666666,
+                  "median": 15426.25,
+                  "p95": 15506.7,
+                  "minimum": 15373.4,
+                  "maximum": 15509.9
+                }
+              },
+              "MUL_MAT f32 m=5120 n=394 k=1280": {
+                "count": 64,
+                "total_ms": {
+                  "mean": 16.907663333333332,
+                  "median": 16.9145,
+                  "p95": 16.9537,
+                  "minimum": 16.8185,
+                  "maximum": 16.972
+                },
+                "gflops": {
+                  "mean": 19540.453333333335,
+                  "median": 19532.55,
+                  "p95": 19620.6,
+                  "minimum": 19466.3,
+                  "maximum": 19643.9
+                }
+              },
+              "MUL_MAT f32 m=77 n=6144 k=256": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.0370048,
+                  "median": 0.036863999999999994,
+                  "p95": 0.038912,
+                  "minimum": 0.036863999999999994,
+                  "maximum": 0.038912
+                },
+                "gflops": {
+                  "mean": 6534.062666666667,
+                  "median": 6557.83,
+                  "p95": 6557.83,
+                  "minimum": 6212.68,
+                  "maximum": 6557.83
+                }
+              },
+              "NEG": {
+                "count": 64,
+                "total_ms": {
+                  "mean": 0.2745312,
+                  "median": 0.274,
+                  "p95": 0.281152,
+                  "minimum": 0.27052800000000005,
+                  "maximum": 0.284032
+                },
+                "gflops": null
+              },
+              "NORM_MUL_ADD NORM": {
+                "count": 65,
+                "total_ms": {
+                  "mean": 0.45154666666666665,
+                  "median": 0.451504,
+                  "p95": 0.466464,
+                  "minimum": 0.430464,
+                  "maximum": 0.48982400000000004
+                },
+                "gflops": null
+              },
+              "RELU": {
+                "count": 2,
+                "total_ms": {
+                  "mean": 0.0143296,
+                  "median": 0.014336,
+                  "p95": 0.014336,
+                  "minimum": 0.014240000000000001,
+                  "maximum": 0.014336
+                },
+                "gflops": null
+              },
+              "REPEAT": {
+                "count": 2,
+                "total_ms": {
+                  "mean": 0.006705066666666666,
+                  "median": 0.00624,
+                  "p95": 0.009728,
+                  "minimum": 0.005728,
+                  "maximum": 0.009792
+                },
+                "gflops": null
+              },
+              "SCALE": {
+                "count": 64,
+                "total_ms": {
+                  "mean": 0.2618528,
+                  "median": 0.261856,
+                  "p95": 0.262688,
+                  "minimum": 0.260768,
+                  "maximum": 0.262752
+                },
+                "gflops": null
+              },
+              "SIN": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.002046933333333333,
+                  "median": 0.002048,
+                  "p95": 0.002048,
+                  "minimum": 0.002016,
+                  "maximum": 0.002048
+                },
+                "gflops": null
+              }
+            }
+          }
+        }
+      },
+      "input_sha256": "2c77457a659ab0c71e6e6ab0bdb50f3b7fb1ca38352a50719760250be84a5694"
+    },
+    "baseline-repeat": {
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "warmups": 10,
+      "module": "/home/rich/c/gem-x.cpp/build/vulkan/bin/libggml-vulkan.so",
+      "revision": "93a33a1bca19e44b2b66c0b9bef47c2bd14cba6e",
+      "ggml_revision": "e91ded11bdcd78c42f9c8d3978ff6686eb4c1226",
+      "input": "/home/rich/c/gem-x.cpp/generated/vitpose-cuda-match-20260920/input.f32",
+      "device": "name, driver_version, memory.total [MiB], power.limit [W]\nNVIDIA GeForce RTX 5070 Ti, 595.71.05, 16303 MiB, 300.00 W",
+      "runs": {
+        "baseline": {
+          "batch": 2,
+          "iterations": 200,
+          "wall_ms": {
+            "mean": 49.71394479,
+            "median": 49.7229845,
+            "p95": 49.932162,
+            "minimum": 49.078419,
+            "maximum": 54.778059
+          },
+          "process_cpu_ms": {
+            "mean": 13.58038,
+            "median": 13.693000000000001,
+            "p95": 14.247,
+            "minimum": 9.525,
+            "maximum": 16.141
+          },
+          "telemetry_samples": 79,
+          "telemetry": {
+            "utilization.gpu": {
+              "mean": 98.18987341772151,
+              "median": 98.0,
+              "p95": 99.0,
+              "minimum": 98.0,
+              "maximum": 99.0
+            },
+            "utilization.memory": {
+              "mean": 20.0,
+              "median": 20.0,
+              "p95": 20.0,
+              "minimum": 20.0,
+              "maximum": 20.0
+            },
+            "power.draw": {
+              "mean": 300.04303797468356,
+              "median": 300.04,
+              "p95": 300.52,
+              "minimum": 299.77,
+              "maximum": 300.52
+            },
+            "clocks.sm": {
+              "mean": 2723.46835443038,
+              "median": 2715.0,
+              "p95": 2745.0,
+              "minimum": 2715.0,
+              "maximum": 2745.0
+            },
+            "clocks.mem": {
+              "mean": 14001.0,
+              "median": 14001.0,
+              "p95": 14001.0,
+              "minimum": 14001.0,
+              "maximum": 14001.0
+            },
+            "temperature.gpu": {
+              "mean": 63.936708860759495,
+              "median": 64.0,
+              "p95": 64.0,
+              "minimum": 63.0,
+              "maximum": 64.0
+            },
+            "memory.used": {
+              "mean": 3480.0,
+              "median": 3480.0,
+              "p95": 3480.0,
+              "minimum": 3480.0,
+              "maximum": 3480.0
+            },
+            "pstate": [
+              "P0"
+            ],
+            "clocks_event_reasons.sw_power_cap": [
+              "Active"
+            ],
+            "clocks_event_reasons.hw_thermal_slowdown": [
+              "Not Active"
+            ]
+          },
+          "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+          "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=2 threads=8 load_ms=861.46 infer_ms=49.724 images_per_second=40.22"
+        }
+      },
+      "input_sha256": "2c77457a659ab0c71e6e6ab0bdb50f3b7fb1ca38352a50719760250be84a5694"
+    },
+    "flash-repeat": {
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "warmups": 10,
+      "module": "/home/rich/c/gem-x.cpp/build/vulkan/bin/libggml-vulkan.so",
+      "revision": "93a33a1bca19e44b2b66c0b9bef47c2bd14cba6e",
+      "ggml_revision": "e91ded11bdcd78c42f9c8d3978ff6686eb4c1226",
+      "input": "/home/rich/c/gem-x.cpp/generated/vitpose-cuda-match-20260920/input.f32",
+      "device": "name, driver_version, memory.total [MiB], power.limit [W]\nNVIDIA GeForce RTX 5070 Ti, 595.71.05, 16303 MiB, 300.00 W",
+      "runs": {
+        "baseline": {
+          "batch": 2,
+          "iterations": 200,
+          "wall_ms": {
+            "mean": 50.12858918,
+            "median": 49.5383645,
+            "p95": 53.729495,
+            "minimum": 49.102079,
+            "maximum": 61.343139
+          },
+          "process_cpu_ms": {
+            "mean": 13.358725,
+            "median": 13.2055,
+            "p95": 17.699,
+            "minimum": 6.721,
+            "maximum": 18.878
+          },
+          "telemetry_samples": 80,
+          "telemetry": {
+            "utilization.gpu": {
+              "mean": 97.1875,
+              "median": 98.0,
+              "p95": 99.0,
+              "minimum": 90.0,
+              "maximum": 99.0
+            },
+            "utilization.memory": {
+              "mean": 18.7125,
+              "median": 19.0,
+              "p95": 19.0,
+              "minimum": 17.0,
+              "maximum": 19.0
+            },
+            "power.draw": {
+              "mean": 299.835,
+              "median": 299.99,
+              "p95": 300.24,
+              "minimum": 298.61,
+              "maximum": 300.35
+            },
+            "clocks.sm": {
+              "mean": 2718.625,
+              "median": 2715.0,
+              "p95": 2782.0,
+              "minimum": 2707.0,
+              "maximum": 2782.0
+            },
+            "clocks.mem": {
+              "mean": 14001.0,
+              "median": 14001.0,
+              "p95": 14001.0,
+              "minimum": 14001.0,
+              "maximum": 14001.0
+            },
+            "temperature.gpu": {
+              "mean": 61.3,
+              "median": 61.0,
+              "p95": 63.0,
+              "minimum": 60.0,
+              "maximum": 63.0
+            },
+            "memory.used": {
+              "mean": 3483.0,
+              "median": 3483.0,
+              "p95": 3483.0,
+              "minimum": 3483.0,
+              "maximum": 3483.0
+            },
+            "pstate": [
+              "P0"
+            ],
+            "clocks_event_reasons.sw_power_cap": [
+              "Active"
+            ],
+            "clocks_event_reasons.hw_thermal_slowdown": [
+              "Not Active"
+            ]
+          },
+          "heatmaps_sha256": "1cfc993f58f3c6fa17a571438dbb50679fc26fe2a8b7385dd01f0782eb8a0fb6",
+          "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=2 threads=8 load_ms=933.43 infer_ms=50.154 images_per_second=39.88"
+        }
+      },
+      "input_sha256": "2c77457a659ab0c71e6e6ab0bdb50f3b7fb1ca38352a50719760250be84a5694"
+    },
+    "offline-baseline": {
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "warmups": 10,
+      "module": "/home/rich/c/gem-x.cpp/build/vulkan/bin/libggml-vulkan.so",
+      "revision": "93a33a1bca19e44b2b66c0b9bef47c2bd14cba6e",
+      "ggml_revision": "e91ded11bdcd78c42f9c8d3978ff6686eb4c1226",
+      "input": "deterministic normalized synthetic RGB; batch 2 = crop + flip workload shape",
+      "device": "name, driver_version, memory.total [MiB], power.limit [W]\nNVIDIA GeForce RTX 5070 Ti, 595.71.05, 16303 MiB, 300.00 W",
+      "runs": {
+        "operators": {
+          "batch": 2,
+          "iterations": 30,
+          "wall_ms": {
+            "mean": 58.14613953333333,
+            "median": 55.559501999999995,
+            "p95": 74.377524,
+            "minimum": 51.999766,
+            "maximum": 80.207664
+          },
+          "process_cpu_ms": {
+            "mean": 10.565966666666666,
+            "median": 11.0165,
+            "p95": 13.573,
+            "minimum": 5.419,
+            "maximum": 14.066
+          },
+          "telemetry_samples": 0,
+          "telemetry": {
+            "utilization.gpu": null,
+            "utilization.memory": null,
+            "power.draw": null,
+            "clocks.sm": null,
+            "clocks.mem": null,
+            "temperature.gpu": null,
+            "memory.used": null,
+            "pstate": null,
+            "clocks_event_reasons.sw_power_cap": null,
+            "clocks_event_reasons.hw_thermal_slowdown": null
+          },
+          "heatmaps_sha256": "a4d8fbccfe9e3379d7a044b13c632f3855a121591d857f44141274a4fde937cf",
+          "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=2 threads=8 load_ms=2049.50 infer_ms=58.215 images_per_second=34.36",
+          "gpu": {
+            "graph_ms": {
+              "mean": 50.837426666666666,
+              "median": 49.30655,
+              "p95": 62.130199999999995,
+              "minimum": 48.984300000000005,
+              "maximum": 66.6942
+            },
+            "samples": 30,
+            "operations": {
+              "ADD": {
+                "count": 292,
+                "total_ms": {
+                  "mean": 2.7060613333333334,
+                  "median": 2.706525,
+                  "p95": 2.72246,
+                  "minimum": 2.68176,
+                  "maximum": 2.73261
+                },
+                "gflops": null
+              },
+              "CONCAT": {
+                "count": 66,
+                "total_ms": {
+                  "mean": 0.40148266666666665,
+                  "median": 0.401584,
+                  "p95": 0.40188799999999997,
+                  "minimum": 0.40048,
+                  "maximum": 0.40192
+                },
+                "gflops": null
+              },
+              "CONT": {
+                "count": 229,
+                "total_ms": {
+                  "mean": 1.7370915333333334,
+                  "median": 0.988368,
+                  "p95": 7.50547,
+                  "minimum": 0.972,
+                  "maximum": 16.924400000000002
+                },
+                "gflops": null
+              },
+              "CONV_TRANSPOSE_2D M=Cout=256, K=Cin*KW*KH=20480, N=N*OW*OH=1768": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 1.3109286666666666,
+                  "median": 1.312255,
+                  "p95": 1.3199400000000001,
+                  "minimum": 1.2974100000000002,
+                  "maximum": 1.3199400000000001
+                },
+                "gflops": {
+                  "mean": 14141.79,
+                  "median": 14127.1,
+                  "p95": 14266.3,
+                  "minimum": 14044.9,
+                  "maximum": 14288.8
+                }
+              },
+              "CONV_TRANSPOSE_2D M=Cout=256, K=Cin*KW*KH=4096, N=N*OW*OH=6600": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.7861632000000001,
+                  "median": 0.785936,
+                  "p95": 0.795648,
+                  "minimum": 0.777216,
+                  "maximum": 0.79664
+                },
+                "gflops": {
+                  "mean": 17604.55,
+                  "median": 17609.0,
+                  "p95": 17805.8,
+                  "minimum": 17372.4,
+                  "maximum": 17806.5
+                }
+              },
+              "COS": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.0020458666666666667,
+                  "median": 0.002048,
+                  "p95": 0.002048,
+                  "minimum": 0.002016,
+                  "maximum": 0.002048
+                },
+                "gflops": null
+              },
+              "GLU": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 0.5352992,
+                  "median": 0.536208,
+                  "p95": 0.539456,
+                  "minimum": 0.528672,
+                  "maximum": 0.541408
+                },
+                "gflops": null
+              },
+              "IM2COL": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.0061418666666666665,
+                  "median": 0.006144,
+                  "p95": 0.006144,
+                  "minimum": 0.006112,
+                  "maximum": 0.006144
+                },
+                "gflops": null
+              },
+              "MUL": {
+                "count": 192,
+                "total_ms": {
+                  "mean": 1.6187803333333333,
+                  "median": 1.1898849999999999,
+                  "p95": 1.19398,
+                  "minimum": 1.18384,
+                  "maximum": 14.0663
+                },
+                "gflops": null
+              },
+              "MUL_MAT f32 m=1280 n=384 k=768": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.0977568,
+                  "median": 0.098304,
+                  "p95": 0.098304,
+                  "minimum": 0.096256,
+                  "maximum": 0.09833599999999999
+                },
+                "gflops": {
+                  "mean": 7718.63,
+                  "median": 7675.0,
+                  "p95": 7838.3,
+                  "minimum": 7672.5,
+                  "maximum": 7838.3
+                }
+              },
+              "MUL_MAT f32 m=1280 n=394 k=1280": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 2.500882333333333,
+                  "median": 2.4989600000000003,
+                  "p95": 2.51642,
+                  "minimum": 2.4856599999999998,
+                  "maximum": 2.51741
+                },
+                "gflops": {
+                  "mean": 16513.49,
+                  "median": 16525.95,
+                  "p95": 16613.9,
+                  "minimum": 16404.9,
+                  "maximum": 16614.4
+                }
+              },
+              "MUL_MAT f32 m=1280 n=394 k=5120": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 9.795508666666667,
+                  "median": 9.433105000000001,
+                  "p95": 12.162700000000001,
+                  "minimum": 9.37325,
+                  "maximum": 12.8729
+                },
+                "gflops": {
+                  "mean": 16998.023333333334,
+                  "median": 17516.95,
+                  "p95": 17628.2,
+                  "minimum": 12836.2,
+                  "maximum": 17628.8
+                }
+              },
+              "MUL_MAT f32 m=197 n=197 k=64 batch=40": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 1.8687996666666666,
+                  "median": 1.868385,
+                  "p95": 1.88541,
+                  "minimum": 1.84835,
+                  "maximum": 1.88784
+                },
+                "gflops": {
+                  "mean": 3375.9313333333334,
+                  "median": 3376.6049999999996,
+                  "p95": 3403.42,
+                  "minimum": 3341.8,
+                  "maximum": 3413.2
+                }
+              },
+              "MUL_MAT f32 m=3840 n=394 k=1280": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 7.864596333333333,
+                  "median": 7.86435,
+                  "p95": 7.92992,
+                  "minimum": 7.81622,
+                  "maximum": 7.93094
+                },
+                "gflops": {
+                  "mean": 15753.553333333333,
+                  "median": 15753.8,
+                  "p95": 15850.7,
+                  "minimum": 15621.5,
+                  "maximum": 15850.8
+                }
+              },
+              "MUL_MAT f32 m=5120 n=394 k=1280": {
+                "count": 64,
+                "total_ms": {
+                  "mean": 16.473489999999998,
+                  "median": 16.4259,
+                  "p95": 16.5292,
+                  "minimum": 16.339,
+                  "maximum": 17.9546
+                },
+                "gflops": {
+                  "mean": 20060.733333333334,
+                  "median": 20113.45,
+                  "p95": 20219.1,
+                  "minimum": 18401.0,
+                  "maximum": 20220.4
+                }
+              },
+              "MUL_MAT f32 m=64 n=197 k=197 batch=40": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 1.7020346666666666,
+                  "median": 1.702435,
+                  "p95": 1.70701,
+                  "minimum": 1.69469,
+                  "maximum": 1.70806
+                },
+                "gflops": {
+                  "mean": 3726.335666666667,
+                  "median": 3725.45,
+                  "p95": 3740.0,
+                  "minimum": 3713.17,
+                  "maximum": 3742.48
+                }
+              },
+              "MUL_MAT f32 m=77 n=6144 k=256": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.036970666666666666,
+                  "median": 0.036863999999999994,
+                  "p95": 0.037888,
+                  "minimum": 0.036832000000000004,
+                  "maximum": 0.038912
+                },
+                "gflops": {
+                  "mean": 6539.660333333333,
+                  "median": 6557.83,
+                  "p95": 6557.83,
+                  "minimum": 6212.68,
+                  "maximum": 6563.53
+                }
+              },
+              "NEG": {
+                "count": 64,
+                "total_ms": {
+                  "mean": 0.2618602666666667,
+                  "median": 0.262,
+                  "p95": 0.26220800000000005,
+                  "minimum": 0.260672,
+                  "maximum": 0.26224000000000003
+                },
+                "gflops": null
+              },
+              "NORM_MUL_ADD NORM": {
+                "count": 65,
+                "total_ms": {
+                  "mean": 0.44617813333333334,
+                  "median": 0.445152,
+                  "p95": 0.453824,
+                  "minimum": 0.435264,
+                  "maximum": 0.48863999999999996
+                },
+                "gflops": null
+              },
+              "RELU": {
+                "count": 2,
+                "total_ms": {
+                  "mean": 0.0143648,
+                  "median": 0.014336,
+                  "p95": 0.0144,
+                  "minimum": 0.014304,
+                  "maximum": 0.015328
+                },
+                "gflops": null
+              },
+              "REPEAT": {
+                "count": 2,
+                "total_ms": {
+                  "mean": 0.0062208,
+                  "median": 0.005984,
+                  "p95": 0.008032,
+                  "minimum": 0.005568,
+                  "maximum": 0.00848
+                },
+                "gflops": null
+              },
+              "SCALE": {
+                "count": 64,
+                "total_ms": {
+                  "mean": 0.26910293333333335,
+                  "median": 0.268608,
+                  "p95": 0.274336,
+                  "minimum": 0.265472,
+                  "maximum": 0.274432
+                },
+                "gflops": null
+              },
+              "SIN": {
+                "count": 1,
+                "total_ms": {
+                  "mean": 0.002046933333333333,
+                  "median": 0.002048,
+                  "p95": 0.002048,
+                  "minimum": 0.002016,
+                  "maximum": 0.002048
+                },
+                "gflops": null
+              },
+              "SOFT_MAX": {
+                "count": 32,
+                "total_ms": {
+                  "mean": 0.39361813333333334,
+                  "median": 0.393232,
+                  "p95": 0.39513600000000004,
+                  "minimum": 0.39305599999999996,
+                  "maximum": 0.395232
+                },
+                "gflops": null
+              }
+            }
+          }
+        },
+        "batch8": {
+          "batch": 8,
+          "iterations": 50,
+          "wall_ms": {
+            "mean": 203.10481408,
+            "median": 203.01709499999998,
+            "p95": 204.326666,
+            "minimum": 202.394097,
+            "maximum": 205.439117
+          },
+          "process_cpu_ms": {
+            "mean": 46.30694,
+            "median": 47.254999999999995,
+            "p95": 49.582,
+            "minimum": 38.006,
+            "maximum": 51.616
+          },
+          "telemetry_samples": 82,
+          "telemetry": {
+            "utilization.gpu": {
+              "mean": 98.92682926829268,
+              "median": 98.0,
+              "p95": 100.0,
+              "minimum": 98.0,
+              "maximum": 100.0
+            },
+            "utilization.memory": {
+              "mean": 18.98780487804878,
+              "median": 19.0,
+              "p95": 20.0,
+              "minimum": 18.0,
+              "maximum": 20.0
+            },
+            "power.draw": {
+              "mean": 300.03939024390246,
+              "median": 300.02,
+              "p95": 300.44,
+              "minimum": 299.63,
+              "maximum": 300.44
+            },
+            "clocks.sm": {
+              "mean": 2732.390243902439,
+              "median": 2730.0,
+              "p95": 2737.0,
+              "minimum": 2730.0,
+              "maximum": 2737.0
+            },
+            "clocks.mem": {
+              "mean": 14001.0,
+              "median": 14001.0,
+              "p95": 14001.0,
+              "minimum": 14001.0,
+              "maximum": 14001.0
+            },
+            "temperature.gpu": {
+              "mean": 63.65853658536585,
+              "median": 64.0,
+              "p95": 64.0,
+              "minimum": 62.0,
+              "maximum": 64.0
+            },
+            "memory.used": {
+              "mean": 3595.9756097560976,
+              "median": 3605.0,
+              "p95": 3605.0,
+              "minimum": 3585.0,
+              "maximum": 3605.0
+            },
+            "pstate": [
+              "P0"
+            ],
+            "clocks_event_reasons.sw_power_cap": [
+              "Active"
+            ],
+            "clocks_event_reasons.hw_thermal_slowdown": [
+              "Not Active"
+            ]
+          },
+          "heatmaps_sha256": "ad154f95c4d206ae2cef9802b36b7b3e471f391a4248fce7f3d2d92c7932257e",
+          "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=8 threads=8 load_ms=2071.12 infer_ms=203.117 images_per_second=39.39"
+        }
+      }
+    },
+    "offline-flash": {
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "warmups": 10,
+      "module": "/home/rich/c/gem-x.cpp/build/vulkan/bin/libggml-vulkan.so",
+      "vitpose_env": {
+        "GEMX_VITPOSE_FLATTEN": "1",
+        "GEMX_VITPOSE_NORM": "1",
+        "GEMX_VITPOSE_SWIGLU": "1",
+        "GEMX_VITPOSE_RECT_GROUP": "up",
+        "GEMX_VITPOSE_RECT": "64x64",
+        "GEMX_VITPOSE_FLASH_ATTN": "1"
+      },
+      "revision": "93a33a1bca19e44b2b66c0b9bef47c2bd14cba6e",
+      "ggml_revision": "e91ded11bdcd78c42f9c8d3978ff6686eb4c1226",
+      "input": "deterministic normalized synthetic RGB; batch 2 = crop + flip workload shape",
+      "device": "name, driver_version, memory.total [MiB], power.limit [W]\nNVIDIA GeForce RTX 5070 Ti, 595.71.05, 16303 MiB, 300.00 W",
+      "runs": {
+        "batch8": {
+          "batch": 8,
+          "iterations": 50,
+          "wall_ms": {
+            "mean": 207.1477382,
+            "median": 206.28425149999998,
+            "p95": 211.812632,
+            "minimum": 205.307181,
+            "maximum": 214.410712
+          },
+          "process_cpu_ms": {
+            "mean": 46.31652,
+            "median": 47.698,
+            "p95": 52.278,
+            "minimum": 32.165,
+            "maximum": 55.377
+          },
+          "telemetry_samples": 83,
+          "telemetry": {
+            "utilization.gpu": {
+              "mean": 98.67469879518072,
+              "median": 100.0,
+              "p95": 100.0,
+              "minimum": 90.0,
+              "maximum": 100.0
+            },
+            "utilization.memory": {
+              "mean": 17.40963855421687,
+              "median": 18.0,
+              "p95": 18.0,
+              "minimum": 15.0,
+              "maximum": 18.0
+            },
+            "power.draw": {
+              "mean": 299.93759036144576,
+              "median": 299.98,
+              "p95": 300.45,
+              "minimum": 298.69,
+              "maximum": 300.45
+            },
+            "clocks.sm": {
+              "mean": 2722.5662650602408,
+              "median": 2722.0,
+              "p95": 2730.0,
+              "minimum": 2715.0,
+              "maximum": 2737.0
+            },
+            "clocks.mem": {
+              "mean": 14001.0,
+              "median": 14001.0,
+              "p95": 14001.0,
+              "minimum": 14001.0,
+              "maximum": 14001.0
+            },
+            "temperature.gpu": {
+              "mean": 64.6987951807229,
+              "median": 65.0,
+              "p95": 65.0,
+              "minimum": 62.0,
+              "maximum": 65.0
+            },
+            "memory.used": {
+              "mean": 3568.0,
+              "median": 3568.0,
+              "p95": 3568.0,
+              "minimum": 3568.0,
+              "maximum": 3568.0
+            },
+            "pstate": [
+              "P0"
+            ],
+            "clocks_event_reasons.sw_power_cap": [
+              "Active"
+            ],
+            "clocks_event_reasons.hw_thermal_slowdown": [
+              "Not Active"
+            ]
+          },
+          "heatmaps_sha256": "0633daa10ef8e356f05d3244246f6074645db7deef15949886a8ce7a366b4692",
+          "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=8 threads=8 load_ms=2018.55 infer_ms=207.162 images_per_second=38.62"
+        }
+      }
+    }
+  },
+  "crop_parity": {
+    "batch2": {
+      "files": 72,
+      "elements": 34062336,
+      "max_abs_error": 8.732080459594727e-06,
+      "raw_peaks": 11088,
+      "changed_raw_peaks": 0,
+      "decoded_joints": 5544,
+      "changed_decoded_xy": 0,
+      "max_xy_heatmap_pixels": 0.0,
+      "max_confidence_error": 4.291534423828125e-06,
+      "mean_abs_error": 1.0408649018342379e-08
+    },
+    "batch8": {
+      "files": 18,
+      "elements": 34062336,
+      "max_abs_error": 8.732080459594727e-06,
+      "raw_peaks": 11088,
+      "changed_raw_peaks": 0,
+      "decoded_joints": 5544,
+      "changed_decoded_xy": 0,
+      "max_xy_heatmap_pixels": 0.0,
+      "max_confidence_error": 4.291534423828125e-06,
+      "mean_abs_error": 1.0408649018342379e-08
+    }
+  },
+  "fixture_parity": {
+    "max_abs_error": 3.8743019104003906e-07,
+    "mean_abs_error": 5.175619488539951e-09,
+    "changed_raw_peaks": 0
+  }
+}
