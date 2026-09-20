@@ -14,13 +14,14 @@ let liveID=null,liveEpoch=0,liveAbort=null,liveRunning=false,liveDisplayed=null,
 function clearPreview(){latestPose=null;viewYaw=null;legend.hidden=true;ctx.fillStyle='#080908';ctx.fillRect(0,0,canvas.width,canvas.height)}
 function cameraControls(){
   const live=mode.value==='live';
+  $('detect-setting').hidden=!live;$('detect-interval').disabled=liveRunning||liveStopping;
   $('file-label').hidden=live;record.hidden=live;liveStart.hidden=!live;liveStop.hidden=!live;
   processButton.hidden=live;download.hidden=live;$('live-metrics').hidden=!live;
   $('rate-label').textContent=live?'Rate cap':'Sample rate';
   liveStart.disabled=liveRunning||liveStopping||offlineBusy;liveStop.disabled=!liveRunning&&!stream;
   camera.disabled=liveRunning||liveStopping||offlineBusy||!!stream;cameraDevice.disabled=liveRunning||liveStopping||offlineBusy;
   record.disabled=!stream||live;mode.disabled=offlineBusy;file.disabled=offlineBusy;
-  $('capture-hint').textContent=live?'Keep the camera still and your whole body in view. Live follows the largest detected person.':'Record a clip or choose a video, then build motion using the complete sequence.';
+  $('capture-hint').textContent=live?'Keep the camera still and your whole body in view. Between detections, stay in the same area while moving your limbs. Set 1 to detect every frame.':'Record a clip or choose a video, then build motion using the complete sequence.';
 }
 function closeCamera(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.controls=true;cameraControls()}
 async function stopLive(note='Live stopped.'){
@@ -46,7 +47,7 @@ async function openCamera(){
 file.onchange=()=>{if(file.files[0]){closeCamera();useBlob(file.files[0])}};
 camera.onclick=async()=>{camera.disabled=true;try{if(await openCamera())message(mode.value==='live'?'Camera ready. Press Start live.':'Camera ready. Record a short clip, then process it.',0)}catch(e){message(`Camera: ${e.message}`,0)}finally{cameraControls()}};
 cameraDevice.onchange=async()=>{await stopLive('Camera changed. Press Start live or open the camera.');};
-mode.onchange=async()=>{if(recorder?.state==='recording'){recorder.onstop=null;recorder.stop();record.textContent='Start recording'}await stopLive(mode.value==='live'?'Open your camera or press Start live.':'Choose a video or record a clip.');playing=false;job=null;video.removeAttribute('src');video.load();video.classList.remove('ready');empty.hidden=false;processButton.disabled=true;download.classList.add('disabled');cameraControls()};
+mode.onchange=async()=>{$('fps').value=mode.value==='live'?'20':'10';if(recorder?.state==='recording'){recorder.onstop=null;recorder.stop();record.textContent='Start recording'}await stopLive(mode.value==='live'?'Open your camera or press Start live.':'Choose a video or record a clip.');playing=false;job=null;video.removeAttribute('src');video.load();video.classList.remove('ready');empty.hidden=false;processButton.disabled=true;download.classList.add('disabled');cameraControls()};
 liveStop.onclick=()=>stopLive();
 liveStart.onclick=async()=>{
   const epoch=++liveEpoch;liveRunning=true;playing=false;job=null;clearPreview();download.classList.add('disabled');cameraControls();
@@ -55,7 +56,9 @@ liveStart.onclick=async()=>{
     if(!stream&&!await openCamera())return;
     if(epoch!==liveEpoch)return;
     message('Loading live models…',0);
-    const session=await api('/api/live',{method:'POST',signal:liveAbort.signal});
+    const detectionInterval=Number($('detect-interval').value);
+    if(!Number.isInteger(detectionInterval)||detectionInterval<1||detectionInterval>30)throw new Error('Detection interval must be a whole number from 1 to 30.');
+    const session=await api(`/api/live?detect_interval=${detectionInterval}`,{method:'POST',signal:liveAbort.signal});
     if(epoch!==liveEpoch){fetch(`/api/live/${session.id}`,{method:'DELETE'}).catch(()=>{});return}
     liveID=session.id;
     const ratio=Math.min(1,960/Math.max(video.videoWidth,video.videoHeight)),width=Math.max(8,Math.round(video.videoWidth*ratio)),height=Math.max(8,Math.round(video.videoHeight*ratio));

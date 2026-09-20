@@ -37,8 +37,12 @@ def main():
     p.add_argument('--frames', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--repeats', type=int, default=3)
+    p.add_argument('--detect-interval',type=int,default=1)
+    p.add_argument('--save-poses',action='store_true',help='Keep outputs for quality comparisons')
     p.add_argument('--compare', type=Path, help='Previous report whose per-frame pose hashes must match exactly')
     a = p.parse_args()
+    if len(os.sched_getaffinity(0))>8:p.error('restrict CPU affinity to at most eight cores')
+    if not 1<=a.detect_interval<=30:p.error('detection interval must be 1..30')
     if not 1 <= a.repeats <= 20:
         p.error('repeats must be 1..20')
     a.root = a.root.resolve();a.output = a.output.resolve()
@@ -58,6 +62,7 @@ def main():
     cmd += [str(a.root/'generated/reference'/name) for name in
             ('gem-x-contact-f32.gguf','vitpose-f32.gguf','yolox-f32.gguf')]
     cmd += [str((a.module or a.root/'build/vulkan/bin/libggml-vulkan.so').resolve()),'Vulkan','0','NVIDIA GeForce RTX 5070 Ti','8','30',str(a.output)]
+    cmd += [str(a.detect_interval)]
     started = time.monotonic()
     hashes = []
     with (a.output/'worker.log').open('w') as log:
@@ -71,13 +76,16 @@ def main():
                 reply = worker.stdout.readline().strip()
                 assert reply.startswith('POSE ') or index == 0 and reply.startswith('WARMUP '), reply
                 if reply.startswith('POSE '):
-                    hashes.append(hashlib.sha256((a.output/'pose.gpose').read_bytes()).hexdigest())
+                    data=(a.output/'pose.gpose').read_bytes()
+                    hashes.append(hashlib.sha256(data).hexdigest())
+                    if a.save_poses:(a.output/f'{index:06d}.gpose').write_bytes(data)
             worker.stdin.close();assert worker.wait(timeout=30)==0
         finally:
             if worker.poll() is None:
                 worker.kill();worker.wait()
     rows = list(csv.DictReader((a.output/'stages.csv').open()))
-    report = dict(startup_seconds=startup,frames=len(rows),pose_hashes=hashes,
+    report = dict(startup_seconds=startup,frames=len(rows),pose_hashes=hashes,detect_interval=a.detect_interval,
+                  detector_calls=sum(int(r['detector_ran']) for r in rows),
                   warmup=summarize([r for r in rows if int(r['context'])<30]),
                   steady=summarize([r for r in rows if int(r['context'])==30]))
     if a.compare:

@@ -49,6 +49,15 @@ func (l *liveLog) Write(p []byte) (int, error) {
 func (l *liveLog) String() string { l.mu.Lock(); defer l.mu.Unlock(); return string(l.text) }
 
 func (a *app) liveStart(w http.ResponseWriter, r *http.Request) {
+	detectInterval := 1 // Requests without an option retain the upstream cadence.
+	if value := r.URL.Query().Get("detect_interval"); value != "" {
+		var err error
+		detectInterval, err = strconv.Atoi(value)
+		if err != nil || detectInterval < 1 || detectInterval > 30 {
+			fail(w, 400, "detection interval must be 1..30")
+			return
+		}
+	}
 	if !a.gpu.TryLock() {
 		fail(w, 409, "inference is busy; stop the current live session or wait for the clip to finish")
 		return
@@ -72,7 +81,7 @@ func (a *app) liveStart(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &liveSession{id: hex.EncodeToString(random), dir: dir, cancel: cancel, done: make(chan struct{})}
 	c := a.cfg
-	cmd := exec.CommandContext(ctx, c.pipeline, "--live-worker", c.denoiser, c.vitpose, c.yolox, c.module, c.backend, strconv.Itoa(c.device), c.deviceName, strconv.Itoa(c.threads), "30", dir)
+	cmd := exec.CommandContext(ctx, c.pipeline, "--live-worker", c.denoiser, c.vitpose, c.yolox, c.module, c.backend, strconv.Itoa(c.device), c.deviceName, strconv.Itoa(c.threads), "30", dir, strconv.Itoa(detectInterval))
 	cmd.Env = os.Environ()
 	if c.strict {
 		precision := c

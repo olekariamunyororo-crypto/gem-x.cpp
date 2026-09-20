@@ -3,7 +3,7 @@
 Choose **Live webcam** to see continuous skeleton updates, or **Offline video**
 to process a complete uploaded video or webcam recording and export a GLB.
 
-Live mode follows upstream's camera example: one-frame person detection and
+With detection interval 1, live mode follows upstream's camera example: one-frame person detection and
 ViTPose, a 30-frame rolling GEM window, two-frame warm-up, and only the newest
 pose displayed. It omits SAM3D Body, contact refinement and world trajectory.
 The 3D view uses that frame's shape and gravity-aligned orientation. The camera
@@ -12,6 +12,13 @@ overlay uses the exact captured frame associated with the displayed pose.
 Press **Start live**, grant camera permission, and keep the camera stationary
 with your full body in view. You can choose a camera after opening it. The rate
 cap limits capture; the displayed rate and frame age reflect actual processing.
+**Detect person every N frames** is configurable from 1 to 30 before starting
+a session (initial value 5). Larger intervals reuse the last person crop while
+ViTPose and GEM still run on every processed frame. Stay in the same area while
+moving your limbs; this is crop reuse, not a motion tracker. Choose 1 for the
+upstream detection cadence or when moving around. Detection retries every frame
+after a miss and refreshes on reset, size change or a pause over two seconds.
+The live rate cap starts at 20 fps so it does not hide the reduced-detection gain.
 Stop releases the worker and camera. Hiding the tab pauses live capture; restart
 clears temporal context. Live frames/results are temporary and are removed on
 stop or idle expiry. Offline and live inference share one GPU slot.
@@ -67,6 +74,9 @@ at a time, so slow inference cannot build an upload queue. The server rejects
 concurrent frame requests, expires idle sessions after 30 seconds, and bounds
 startup/inference to 120 seconds. A gap over two seconds resets native temporal
 history. A stale pose disappears from the browser after two seconds.
+The worker accepts an optional final `DETECT_INTERVAL` argument, defaulting to
+1. `POST /api/live?detect_interval=N` selects it; requests without the option
+retain interval 1. Offline processing is unchanged.
 
 Validation includes Go lifecycle tests, lossless 72-frame HTTP replay using
 `scripts/qa_live_http.py`, and simulated-webcam Chromium checks using

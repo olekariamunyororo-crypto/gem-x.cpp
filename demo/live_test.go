@@ -19,6 +19,7 @@ func testLiveApp(t *testing.T) *app {
 	// Exercise HTTP/worker lifecycle without GPU models; real rolling inference
 	// is checked separately against the pinned video reference.
 	script := `#!/bin/sh
+printf '%s' "${12}" > "${11}/detect-interval"
 printf 'READY\n'
 n=0
 while read command; do
@@ -35,6 +36,21 @@ done
 	a := &app{cfg: config{data: dir, pipeline: pipeline, threads: 8}}
 	t.Cleanup(func() { a.stopLive() })
 	return a
+}
+func TestLiveDetectionIntervalValidation(t *testing.T) {
+	a := testLiveApp(t)
+	for _, value := range []string{"0", "31", "1.5", "nope", "-1"} {
+		if w := liveRequest(a, "POST", "/api/live?detect_interval="+value, nil); w.Code != 400 {
+			t.Fatalf("interval %s: status %d", value, w.Code)
+		}
+	}
+	if w := liveRequest(a, "POST", "/api/live?detect_interval=7", nil); w.Code != 201 {
+		t.Fatalf("valid interval: status %d: %s", w.Code, w.Body.String())
+	}
+	data, err := os.ReadFile(filepath.Join(a.live.dir, "detect-interval"))
+	if err != nil || string(data) != "7" {
+		t.Fatalf("worker interval: %q, %v", data, err)
+	}
 }
 func liveRequest(a *app, method, path string, data []byte) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()

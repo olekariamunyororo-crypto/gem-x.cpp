@@ -22,6 +22,7 @@ def main():
     p.add_argument('--video',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--chrome',default='chromium')
+    p.add_argument('--detect-interval',type=int,default=7)
     a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='gemx-camera-') as profile, (a.output/'chrome.log').open('w') as log:
         browser=subprocess.Popen([a.chrome,'--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
@@ -40,14 +41,17 @@ def main():
             c.call('Page.enable');c.call('Runtime.enable')
             c.call('Page.navigate',dict(url=a.url))
             c.wait('typeof document.querySelector("#live-start")?.onclick === "function"')
-            c.evaluate('''window.qa={poses:0,pending:0,maxPending:0};window.realFetch=window.fetch;window.fetch=async(...args)=>{
+            c.evaluate(f'document.querySelector("#detect-interval").value={a.detect_interval}')
+            c.evaluate('''window.qa={poses:0,pending:0,maxPending:0,sessionURL:null};window.realFetch=window.fetch;window.fetch=async(...args)=>{
+              if(String(args[0]).startsWith('/api/live?'))qa.sessionURL=String(args[0]);
               const frame=String(args[0]).endsWith('/frame');if(frame){qa.pending++;qa.maxPending=Math.max(qa.maxPending,qa.pending)}
               try{const r=await realFetch(...args);if(frame&&r.status===200)qa.poses++;return r}finally{if(frame)qa.pending--}
             };document.querySelector('#live-start').click()''')
             c.wait('window.qa.poses>=32',timeout=120)
             c.screenshot(a.output/'live.png')
-            report=c.evaluate('({poses:qa.poses,maxPending:qa.maxPending,status:document.querySelector("#status").textContent,metrics:document.querySelector("#live-metrics").textContent,hasStream:!!document.querySelector("#video").srcObject})')
+            report=c.evaluate('({poses:qa.poses,maxPending:qa.maxPending,sessionURL:qa.sessionURL,intervalLocked:document.querySelector("#detect-interval").disabled,status:document.querySelector("#status").textContent,metrics:document.querySelector("#live-metrics").textContent,hasStream:!!document.querySelector("#video").srcObject})')
             assert report['maxPending']==1 and report['hasStream'],report
+            assert report['sessionURL']==f'/api/live?detect_interval={a.detect_interval}' and report['intervalLocked'],report
             c.evaluate('document.querySelector("#live-stop").click()')
             c.wait('document.querySelector("#video").srcObject===null && !document.querySelector("#live-start").disabled')
             # Stop waits for the worker to release GPU ownership before restart.

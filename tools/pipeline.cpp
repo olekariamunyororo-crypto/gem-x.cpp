@@ -1,4 +1,5 @@
 #include "gemx.h"
+#include "live_detection.hpp"
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -420,7 +421,11 @@ int offline_sequence(int argc,char **argv){
 // Resident camera worker. Only observations are buffered; RGB frames and pose
 // files are overwritten, so an arbitrarily long live session stays bounded.
 int live_worker(int argc,char **argv){
-    if(argc!=12)throw std::invalid_argument("usage: gemx-pipeline --live-worker DENOISER VITPOSE YOLOX MODULE CPU|Vulkan DEVICE DESCRIPTION|- THREADS WINDOW DIRECTORY");
+    if(argc!=12 && argc!=13)throw std::invalid_argument("usage: gemx-pipeline --live-worker DENOISER VITPOSE YOLOX MODULE CPU|Vulkan DEVICE DESCRIPTION|- THREADS WINDOW DIRECTORY [DETECT_INTERVAL]");
+    const uint32_t detect_interval=argc==13?number(argv[12]):1;
+    if(detect_interval<1||detect_interval>30)throw std::invalid_argument("detection interval 1..30 required");
+    live_detection_schedule detection_schedule(detect_interval);
+    std::array<float,4> box{};uint32_t detected=0;
     const uint32_t threads=number(argv[9]),window=number(argv[10]);
     if(threads<1||threads>8||window<2||window>120)throw std::invalid_argument("threads 1..8 and window 2..120 required");
     char error[512]{};
@@ -440,31 +445,40 @@ int live_worker(int argc,char **argv){
     std::ofstream profile;
     if(const char *path=std::getenv("GEMX_LIVE_PROFILE")){
         profile.open(path);if(!profile)throw std::runtime_error("cannot open live profile");
-        profile<<"frame,context,read_ms,detector_ms,vitpose_ms,gem_decode_ms,world_skeleton_ms,camera_skeleton_ms,write_ms,total_ms\n";
+        profile<<"frame,context,read_ms,detector_ms,vitpose_ms,gem_decode_ms,world_skeleton_ms,camera_skeleton_ms,write_ms,total_ms,detector_ran\n";
     }
     uint64_t frame_index=0;
     std::string command;
     while(std::getline(std::cin,command)){
-        if(command=="RESET"){history.clear();std::cout<<"RESET"<<std::endl;continue;}
+        if(command=="RESET"){history.clear();detection_schedule.reset();std::cout<<"RESET"<<std::endl;continue;}
         if(command!="FRAME")throw std::invalid_argument("invalid live command");
         const auto started=std::chrono::steady_clock::now();auto mark=started;
         std::array<double,7> timings{};
+        bool detector_ran=false;
         auto stage=[&](size_t i){if(!profile.is_open())return;const auto now=std::chrono::steady_clock::now();timings[i]=std::chrono::duration<double,std::milli>(now-mark).count();mark=now;};
         auto record=[&](uint32_t context){if(profile.is_open()){profile<<frame_index<<','<<context;for(double t:timings)profile<<','<<t;
-            profile<<','<<std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count()<<'\n';}++frame_index;};
+            profile<<','<<std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count()<<','<<detector_ran<<'\n';}++frame_index;};
         const auto image=load_image((dir/"frame.input").string());
-        if(image.width!=width||image.height!=height||std::chrono::steady_clock::now()-previous>std::chrono::seconds(2))history.clear();
+        if(image.width!=width||image.height!=height||std::chrono::steady_clock::now()-previous>std::chrono::seconds(2)){
+            history.clear();detection_schedule.reset();
+        }
         width=image.width;height=image.height;
         gemx_rgb_frame frame{image.rgb.data(),image.rgb.size(),width,height,image.stride,{}};
-        std::array<gemx_detection,100> detections{};uint32_t detected=0;
         stage(0);
-        api(gemx_yolox_detect(detector.get(),&frame,.5f,.45f,detections.data(),detections.size(),&detected,error,sizeof(error)),error);
+        detector_ran=detection_schedule.due();
+        std::array<gemx_detection,100> detections{};
+        if(detector_ran){
+            api(gemx_yolox_detect(detector.get(),&frame,.5f,.45f,detections.data(),detections.size(),&detected,error,sizeof(error)),error);
+            detection_schedule.detected(detected>0);
+        }
         stage(1);
         // Upstream recreates ByteTrack each frame: largest area wins.
-        std::array<float,4> box{0,0,float(width-1),float(height-1)};float area=-1;
-        for(uint32_t i=0;i<detected;++i){const auto &b=detections[i].box;float a=std::max(0.f,b[2]-b[0])*std::max(0.f,b[3]-b[1]);
-            if(a>area){area=a;std::copy_n(b,4,box.data());}}
-        for(int i=0;i<4;++i)box[i]=std::clamp(box[i],0.f,float(i%2?height-1:width-1));
+        if(detector_ran){
+            box={0,0,float(width-1),float(height-1)};float area=-1;
+            for(uint32_t i=0;i<detected;++i){const auto &b=detections[i].box;float a=std::max(0.f,b[2]-b[0])*std::max(0.f,b[3]-b[1]);
+                if(a>area){area=a;std::copy_n(b,4,box.data());}}
+            for(int i=0;i<4;++i)box[i]=std::clamp(box[i],0.f,float(i%2?height-1:width-1));
+        }
         observation current{};current.box={(box[0]+box[2])*.5f,(box[1]+box[3])*.5f,std::max(box[3]-box[1],(box[2]-box[0])/.75f)*1.2f};
         std::copy(current.box.begin(),current.box.end(),frame.box);
         api(gemx_vitpose_infer_rgb(pose.get(),&frame,1,current.keypoints.data(),231,error,sizeof(error)),error);
