@@ -197,7 +197,9 @@ vitpose::graph_state &vitpose::graph(uint32_t batch){
         normalized=norm(ctx,*model_,p+".norm2",x);
         auto *w1=linear(ctx,*model_,p+".mlp.w1",normalized);
         auto *w2=linear(ctx,*model_,p+".mlp.w2",normalized);
-        auto *mlp=ggml_mul(ctx,ggml_silu(ctx,w1),w2);
+        const char *fused_glu=std::getenv("GEMX_VITPOSE_SWIGLU");
+        auto *mlp=fused_glu && std::strcmp(fused_glu,"1")==0 ?
+            ggml_swiglu_split(ctx,w1,w2) : ggml_mul(ctx,ggml_silu(ctx,w1),w2);
         mlp=linear(ctx,*model_,p+".mlp.w3",mlp);
         x=ggml_add(ctx,x,ggml_mul(ctx,mlp,model_->tensor(p+".ls2.gamma")));
     }

@@ -1,0 +1,60 @@
+// Based on pinned GGML norm.comp (MIT); identical reduction tree.
+#version 450
+
+layout (push_constant) uniform parameter { uint width; float eps; } p;
+layout (binding=0) readonly buffer A {float data_a[];};
+layout (binding=1) readonly buffer W {float weight[];};
+layout (binding=2) readonly buffer B {float bias[];};
+layout (binding=3) writeonly buffer D {float data_d[];};
+
+#extension GL_EXT_control_flow_attributes : enable
+#define BLOCK_SIZE 512
+
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+shared vec2 sum[BLOCK_SIZE];
+
+// A function boundary keeps affine NoContraction from changing norm arithmetic.
+float normalize_value(float x, float mean, float inv_std) {
+    return (x - mean) * inv_std;
+}
+
+vec2 normalization_stats(uint a_base) {
+    const uint tid = gl_LocalInvocationID.x;
+
+    sum[tid] = vec2(0.0f, 0.0f);
+
+    [[unroll]] for (uint i0 = tid; i0 < p.width; i0 += BLOCK_SIZE) {
+        const float xi = data_a[a_base + i0];
+        sum[tid].x += xi;
+        sum[tid].y += xi * xi;
+    }
+
+    // sum up partial sums and write back result
+    barrier();
+    [[unroll]] for (int s = BLOCK_SIZE / 2; s > 0; s >>= 1) {
+        if (tid < s) {
+            sum[tid] += sum[tid + s];
+        }
+        barrier();
+    }
+
+    const float mean = sum[0].x / p.width;
+    const float var = sum[0].y / p.width - mean * mean;
+    const float inv_std = inversesqrt(var + p.eps);
+
+    return vec2(mean, inv_std);
+}
+
+void main() {
+    const uint tid = gl_LocalInvocationID.x;
+    const uint a_base = gl_WorkGroupID.x * p.width;
+    const uint d_base = a_base;
+    vec2 stats = normalization_stats(a_base);
+    [[unroll]] for (uint i0 = tid; i0 < p.width; i0 += BLOCK_SIZE) {
+        float normalized = normalize_value(data_a[a_base + i0], stats.x, stats.y);
+        precise float scaled = normalized * weight[i0];
+        precise float result = scaled + bias[i0];
+        data_d[d_base + i0] = result;
+    }
+}
