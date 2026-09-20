@@ -51,6 +51,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--module', type=Path, help='Isolated Vulkan backend for kernel experiments')
     parser.add_argument('--iterations', type=int, default=200)
     parser.add_argument('--runs', nargs='+', choices=['baseline', 'host', 'operators', 'concurrent',
                                                      'batch1', 'batch4', 'batch8', 'baseline-repeat', 'sync'])
@@ -60,6 +61,7 @@ def main():
     if len(os.sched_getaffinity(0)) > 8:
         parser.error('restrict CPU affinity to at most eight cores')
     root, output = a.root.resolve(), a.output.resolve()
+    module=(a.module or root/'build/vulkan/bin/libggml-vulkan.so').resolve()
     output.mkdir(parents=True, exist_ok=False)
     env = {k: v for k, v in os.environ.items() if not k.startswith(('GGML_VK_', 'GEMX_BENCHMARK_', 'GEMX_GGML_'))}
     env.pop('LD_PRELOAD', None)
@@ -68,7 +70,7 @@ def main():
     fields = ['utilization.gpu', 'utilization.memory', 'power.draw', 'clocks.sm',
               'clocks.mem', 'temperature.gpu', 'memory.used', 'pstate',
               'clocks_event_reasons.sw_power_cap', 'clocks_event_reasons.hw_thermal_slowdown']
-    report = dict(cpu_affinity=sorted(os.sched_getaffinity(0)), warmups=10,
+    report = dict(cpu_affinity=sorted(os.sched_getaffinity(0)), warmups=10, module=str(module),
                   revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip(),
                   ggml_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root/'ggml', text=True).strip(),
                   input='deterministic normalized synthetic RGB; batch 2 = crop + flip workload shape',
@@ -103,7 +105,7 @@ def main():
         try:
             command = [str(root/'build/vulkan/gemx-vitpose-benchmark'),
                        str(root/'generated/reference/vitpose-f32.gguf'),
-                       str(root/'build/vulkan/bin/libggml-vulkan.so'), 'Vulkan', '8', str(batch), str(count)]
+                       str(module), 'Vulkan', '8', str(batch), str(count)]
             with (folder/'stdout.txt').open('w') as stdout, (folder/'stderr.txt').open('w') as stderr:
                 subprocess.run(command, env=local_env, stdout=stdout, stderr=stderr, check=True, timeout=300)
         finally:

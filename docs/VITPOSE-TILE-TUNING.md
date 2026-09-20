@@ -2,6 +2,8 @@
 
 Follow-up: [hardware counters and warp-stall analysis](VITPOSE-STALL-ANALYSIS.md)
 measure the occupancy improvement and distinguish bandwidth from latency limits.
+The subsequent [down-projection experiment](VITPOSE-DOWN-PROJECTION.md) adds
+128×32 down tiles while preserving the original split-K reduction.
 
 The accepted change selects GGML's existing **32×32 tiles for the feed-forward
 gate/up and attention output projections** in live ViTPose. The combined
