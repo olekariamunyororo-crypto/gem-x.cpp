@@ -10,7 +10,7 @@ vk_pipeline gemx_vitpose_split_pipeline;
     if (gemx_vitpose_tiles && strcmp(ctx->device->properties.deviceName.data(), "NVIDIA GeForce RTX 5070 Ti") == 0 &&
         !ctx->device->fp16 && !ctx->device->coopmat2 && !ctx->device->coopmat_support &&
         src0->type == GGML_TYPE_F32 && src1->type == GGML_TYPE_F32 &&
-        ne11 == 197 && ne12 * ne13 == 2) {
+        ((ne11 == 197 && ne12 * ne13 == 2) || (ne11 == 394 && ne12 * ne13 == 1))) {
         unsigned bit = 0;
         if (ne10 == 1280 && (ne01 == 5120 || ne01 == 1280) && ctx->device->mul_mat_s[GGML_TYPE_F32]) {
             pipeline = aligned ? mmp->a_s : mmp->s;
@@ -28,8 +28,9 @@ vk_pipeline gemx_vitpose_split_pipeline;
         static const bool trace = getenv("GEMX_VITPOSE_TILES_TRACE") != nullptr;
         static thread_local unsigned traced = 0;
         if (trace && bit && !(traced & bit)) {
-            GGML_LOG_INFO("gemx_vitpose_tiles: m=%llu n=197 k=%llu batch=2 tile=%s%s\n",
-                          static_cast<unsigned long long>(ne01), static_cast<unsigned long long>(ne10),
+            GGML_LOG_INFO("gemx_vitpose_tiles: m=%llu n=%llu k=%llu batch=%llu tile=%s%s\n",
+                          static_cast<unsigned long long>(ne01), static_cast<unsigned long long>(ne11),
+                          static_cast<unsigned long long>(ne10), static_cast<unsigned long long>(ne12 * ne13),
                           bit == 4 ? "128x32" : "32", bit == 4 ? " original-split-k" : "");
             traced |= bit;
         }

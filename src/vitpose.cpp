@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
 #include <future>
 #include <limits>
 
@@ -17,8 +18,19 @@ constexpr int64_t joints=77,heat_width=48,heat_height=64;
 
 ggml_tensor *linear(ggml_context *ctx,const model &weights,const std::string &prefix,
                     ggml_tensor *input){
-    auto *value=ggml_mul_mat(ctx,weights.tensor(prefix+".weight"),input);
+    // Experimental batching: preserve token/crop ordering while presenting all
+    // rows to one GEMM. Reshapes are views and do not copy the activations.
+    static const bool flatten=[] {
+        const char *value=std::getenv("GEMX_VITPOSE_FLATTEN");
+        return value && std::strcmp(value,"1")==0;
+    }();
+    auto *matrix=input;
+    if(flatten && input->ne[2]==2 && input->ne[3]==1 && ggml_is_contiguous(input))
+        matrix=ggml_reshape_2d(ctx,input,input->ne[0],input->ne[1]*input->ne[2]*input->ne[3]);
+    auto *value=ggml_mul_mat(ctx,weights.tensor(prefix+".weight"),matrix);
     ggml_mul_mat_set_prec(value,GGML_PREC_F32);
+    if(matrix!=input)
+        value=ggml_reshape_4d(ctx,value,value->ne[0],input->ne[1],input->ne[2],input->ne[3]);
     return ggml_add(ctx,value,weights.tensor(prefix+".bias"));
 }
 
