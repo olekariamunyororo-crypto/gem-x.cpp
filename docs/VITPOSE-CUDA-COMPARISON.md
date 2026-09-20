@@ -75,3 +75,5 @@ taskset -c 0-7 python scripts/profile_cuda_vitpose.py --mode kernels --output ge
 Create `input.f32` in that output directory from the same normalized fixture with its horizontal flip, then run `sample_vitpose_gpu.py --output ... --nsys ...` under the same affinity. The Nsight directory must contain `target-linux-x64/nsys`. The sampler requires the latency command manifest and built Vulkan benchmark; each output directory is single-use for sampling. Counter containers require permission to access GPU performance counters. The `counters` mode needs recent Nsight Compute and is retained for diagnostics, not the fair aggregate comparison.
 
 `profile_vitpose.py --input` and `capture_vitpose_nsight.py --optimized --input` support the identical raw batch-two input. The benchmark rejects incorrect input lengths.
+
+Follow-up: [individual QKV counters](VITPOSE-QKV-COUNTERS.md) isolate Vulkan QKV and compare its resource use and warp states with CUDA.

@@ -45,3 +45,13 @@ if (ctx->device->gemx_rect_pipeline && aligned && ne11==394 && ne12*ne13==1 &&
                   (strcmp(group,"qkv")==0 && ne01==3840) ||
                   (strcmp(group,"proj")==0 && ne10==1280 && ne01==1280))) pipeline=ctx->device->gemx_rect_pipeline;
 }
+
+// Diagnostic only: expose the selected QKV pipeline and compiler statistics.
+if (getenv("GEMX_VITPOSE_TILES_TRACE") && ne10==1280 && ne01==3840 && ne11==394) {
+    static thread_local bool qkv_traced=false;
+    if (!qkv_traced) {
+        GGML_LOG_INFO("gemx_qkv_pipeline: name=%s tile=%ux%u registers=%u\n",
+                      pipeline->name.c_str(), pipeline->wg_denoms[0], pipeline->wg_denoms[1], pipeline->register_count);
+        qkv_traced=true;
+    }
+}
