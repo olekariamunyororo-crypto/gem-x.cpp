@@ -24,6 +24,11 @@ int main(int argc,char **argv){
         const double load_ms=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-load_start).count();
         std::vector<float> images(uint64_t(batch)*3*256*192),heatmaps(uint64_t(batch)*77*64*48);
         for(size_t i=0;i<images.size();++i)images[i]=float(int(i%251)-125)/64.f;
+        if(const char *path=std::getenv("GEMX_BENCHMARK_INPUT")){
+            std::unique_ptr<FILE,int(*)(FILE *)> input(std::fopen(path,"rb"),std::fclose);
+            if(!input || std::fread(images.data(),sizeof(float),images.size(),input.get())!=images.size() ||
+               std::fgetc(input.get())!=EOF)throw std::runtime_error("invalid normalized benchmark input");
+        }
         const char *warmup_env=std::getenv("GEMX_BENCHMARK_WARMUP");
         const uint32_t warmups=warmup_env?std::stoul(warmup_env):1;
         if(warmups>1000)throw std::invalid_argument("too many warmups");

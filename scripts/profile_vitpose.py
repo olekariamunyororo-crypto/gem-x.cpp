@@ -53,6 +53,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--module', type=Path, help='Isolated Vulkan backend for kernel experiments')
     parser.add_argument('--iterations', type=int, default=200)
+    parser.add_argument('--input',type=Path,help='Raw normalized NCHW F32 input; use batch-two runs only')
     parser.add_argument('--runs', nargs='+', choices=['baseline', 'host', 'operators', 'concurrent',
                                                      'batch1', 'batch4', 'batch8', 'baseline-repeat', 'sync'])
     a = parser.parse_args()
@@ -67,6 +68,10 @@ def main():
     env.pop('LD_PRELOAD', None)
     env.update(GGML_VK_DISABLE_F16='1', GGML_VK_DISABLE_COOPMAT='1', GGML_VK_DISABLE_COOPMAT2='1',
                OMP_NUM_THREADS='8', OPENBLAS_NUM_THREADS='8', GEMX_BENCHMARK_WARMUP='10')
+    if a.input:
+        if not a.runs or any(n in a.runs for n in ('batch1','batch4','batch8')):
+            parser.error('--input requires explicit batch-two --runs')
+        env['GEMX_BENCHMARK_INPUT']=str(a.input.resolve())
     fields = ['utilization.gpu', 'utilization.memory', 'power.draw', 'clocks.sm',
               'clocks.mem', 'temperature.gpu', 'memory.used', 'pstate',
               'clocks_event_reasons.sw_power_cap', 'clocks_event_reasons.hw_thermal_slowdown']
@@ -76,6 +81,9 @@ def main():
                   input='deterministic normalized synthetic RGB; batch 2 = crop + flip workload shape',
                   device=subprocess.check_output(['nvidia-smi', '--query-gpu=name,driver_version,memory.total,power.limit',
                       '--format=csv'], text=True).strip(), runs={})
+    if a.input:
+        report['input']=str(a.input.resolve())
+        report['input_sha256']=hashlib.sha256(a.input.read_bytes()).hexdigest()
     plans = [('baseline', 2, a.iterations, {}),
              ('host', 2, a.iterations, {'LD_PRELOAD': str(root/'build/vulkan/libgemx-profile-ggml.so')}),
              ('operators', 2, 30, {'GGML_VK_PERF_LOGGER': '1'}),

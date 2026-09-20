@@ -19,10 +19,13 @@ def main():
     p.add_argument('--library-path',help='Extra runtime library path, e.g. on NixOS')
     p.add_argument('--sudo',action='store_true')
     p.add_argument('--baseline',action='store_true')
+    p.add_argument('--optimized',action='store_true',help='Enable the validated combined matrices, fusions and expansion tiles')
+    p.add_argument('--input',type=Path,help='Raw normalized NCHW F32 input, batch two')
     p.add_argument('--duration-ms',type=int,default=250)
     p.add_argument('--no-pc-sampling',action='store_true',help='Collect additional SM/cache metrics instead')
     a=p.parse_args()
     if len(os.sched_getaffinity(0))>8:p.error('restrict affinity to at most eight cores')
+    if a.baseline and a.optimized:p.error('baseline and optimized are mutually exclusive')
     root=Path(__file__).resolve().parents[1];out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
     envs=['NV_AGORA_FORCE_BREAKPAD=-1','XDG_CACHE_HOME=/tmp/gemx-nsight-cache',
           'XDG_CONFIG_HOME=/tmp/gemx-nsight-config']
@@ -38,6 +41,9 @@ def main():
              '--architecture','Blackwell GB20x','--metric-set-id','0','--auto-export',
              '--set-gpu-clocks','unaltered','--collect-screenshot','0','--trace-timeout','60']
     if not a.no_pc_sampling:command.append('--real-time-shader-profiler')
+    if a.optimized:
+        command[command.index('--env')+1]+='GEMX_VITPOSE_FLATTEN=1;GEMX_VITPOSE_NORM=1;GEMX_VITPOSE_SWIGLU=1;GEMX_VITPOSE_RECT_GROUP=up;GEMX_VITPOSE_RECT=64x64;'
+    if a.input:command[command.index('--env')+1]+='GEMX_BENCHMARK_INPUT='+str(a.input.resolve())+';'
     with (out/'capture.log').open('w') as log:
         result=subprocess.run(command,stdout=log,stderr=log,timeout=120)
     if result.returncode or not (out/'BASE_UNLOCKED/GPUTRACE_FRAME.xls').is_file():
