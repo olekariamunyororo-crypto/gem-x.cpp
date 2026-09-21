@@ -19,8 +19,8 @@ F32 format conversions of NVIDIA GEM-X and its observation components for
 **gem-x.cpp**, a C++23/GGML CPU/Vulkan runtime. This is an independent port,
 not an NVIDIA release, fine-tune, retraining, or low-bit quantization. These
 custom architectures require gem-x.cpp; they are not LLM GGUFs for llama.cpp.
-This card and bundle manifest are prepared locally. No model upload or new
-public download location is implied.
+Download the bundle from [LocalAI-io/GEM-X-GGUF](https://huggingface.co/LocalAI-io/GEM-X-GGUF).
+See [download and launch instructions](USAGE.md).
 
 ## Files and compatibility
 
