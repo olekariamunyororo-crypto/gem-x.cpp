@@ -2,3 +2,6 @@
 	path = ggml
 	url = https://github.com/ggml-org/ggml.git
 
+[submodule "sam3d.cpp"]
+	path = sam3d.cpp
+	url = https://github.com/localai-org/sam3d.cpp.git

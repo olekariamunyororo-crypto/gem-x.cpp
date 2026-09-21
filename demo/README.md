@@ -58,7 +58,7 @@ cd ..
 ```
 
 All paths have repository-relative defaults. No GPU model name is required. Use the command-line flags when the
-GEM-X and SAM3D repositories or model files are elsewhere. `--threads` is
+SAM3D build or model files are elsewhere. `--threads` is
 validated to a maximum of eight.
 
 The implementation follows and credits
@@ -110,8 +110,38 @@ variant. `--device N` selects the device; `--device-name NAME` optionally checks
 its description. `--listen` and `--data` configure deployment and storage.
 Run `./demo/gemx-demo --help` for all model and SAM3D path overrides. The
 `--body-runner`, `--body-module`, `--backbone`, `--branch` and `--mhr` options
-configure a separate SAM3D installation; live mode does not need it.
+override the included SAM3D submodule paths; live mode does not need it.
 
 The server has no authentication; use localhost or a trusted authenticated
 reverse proxy. Uploaded video is decoded by the browser; the server accepts
 size-limited JPEG/PNG frames.
+
+## Offline dependency setup
+
+`sam3d.cpp/` is a pinned Git submodule. From the GEM-X repository root, fetch it
+and its dependencies, then build its Body worker:
+
+```sh
+git submodule update --init --recursive
+(cd sam3d.cpp && cmake --preset vulkan-bf16-production && cmake --build --preset vulkan-bf16-production -j8)
+```
+
+This build uses the Vulkan toolchain described in the main README. The preset
+name enables support for BF16 optimizations; the GEM-X demo still uses F32 Body
+inference by default. Its output directory is `build/vulkan-bf16-performance`.
+
+Prepare the three Body GGUFs using the submodule's
+[reference setup](../sam3d.cpp/reference/README.md) and
+[conversion guide](../sam3d.cpp/reference/GGUF.md). Model files are not fetched
+by Git. The default paths, relative to the GEM-X repository root, are:
+
+```text
+sam3d.cpp/generated/models/sam-3d-body-dinov3/body-dinov3-f32.gguf
+sam3d.cpp/generated/models/sam-3d-body-dinov3/body-pose-branch-f32.gguf
+sam3d.cpp/generated/models/mhr-public/mhr-lod1-f32.gguf
+```
+
+The demo automatically looks for the worker and Vulkan module in
+`sam3d.cpp/build/vulkan-bf16-performance/bin/`. Use the path overrides above
+if reusing an existing SAM3D installation. Live-only users can skip this build
+and the Body model preparation.

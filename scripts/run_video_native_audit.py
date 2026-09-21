@@ -31,7 +31,7 @@ def f32(x):return struct.unpack('<f',struct.pack('<f',x))[0]
 
 
 gem=a.gem_root.resolve()
-sam=(a.sam_root or gem.parent/'sam3d.cpp').resolve()
+sam=(a.sam_root or gem/'sam3d.cpp').resolve()
 source=a.frames.resolve()
 out=a.output.resolve()
 if out.exists() and any(out.iterdir()):raise ValueError('Use an empty audit output directory')

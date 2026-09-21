@@ -65,7 +65,8 @@ OpenCV and ONNX Runtime are reference/comparison dependencies, not native build
 dependencies. The browser QA helper is bundled and uses Python's standard
 library plus an installed Chromium executable (`--chrome`). No sibling checkout
 is needed for native builds, live demo, or browser QA. Offline Body inference
-requires explicitly configured sam3d.cpp assets/workers.
+uses the pinned `sam3d.cpp/` submodule. Build its worker and prepare the Body models using the [offline setup](../demo/README.md#offline-dependency-setup);
+external installations remain supported through path overrides.
 
 Audit/replay tools accept `--device` and optional `--device-name`; model/module
 paths are explicit arguments or repository-relative defaults. Profiler paths

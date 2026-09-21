@@ -41,8 +41,8 @@ from another device.
 Select **Offline video**, then upload a video or record a webcam clip. Press **Build motion**, inspect the skeleton alongside the video, then select
 **Download animated GLB**. Clips are limited to 120 sampled frames.
 
-Offline processing needs a separate `sam3d.cpp`
-installation and Body model assets. Live webcam mode does not need them.
+Offline processing uses the included `sam3d.cpp` submodule and its Body model
+assets. Live webcam mode does not need them.
 See the [demo guide](demo/README.md) for configuration and controls.
 
 ## Install
@@ -93,8 +93,8 @@ generated/reference/yolox-f32.gguf
 ```
 
 You can override model locations and select a GPU with command-line flags;
-run `./demo/gemx-demo --help` for the options. For offline video, also configure
-the SAM3D worker and model paths described in the [demo guide](demo/README.md).
+run `./demo/gemx-demo --help` for the options. For offline video, also build the
+included SAM3D worker and prepare its Body models using the [offline setup instructions](demo/README.md#offline-dependency-setup).
 
 ### 3. Start the demo
 

@@ -40,7 +40,7 @@ lack live absent-image conditioning and contact weights. Reconvert older files
 for the current default live/offline demo.
 
 Live inference needs these three files. Offline inference additionally needs
-sam3d.cpp's compatible Body backbone, pose branch and MHR GGUFs, with
+the included `sam3d.cpp/` submodule's compatible Body backbone, pose branch and MHR GGUFs, with
 `sam3d-body-infer --gem-features` producing the 1024-value pose token. Those
 separately licensed assets are not included in this bundle. Loading all networks,
 workspaces and graph buffers requires more RAM/VRAM than the file sizes alone.
