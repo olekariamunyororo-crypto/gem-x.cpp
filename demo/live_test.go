@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -153,5 +154,100 @@ func TestLiveStartupDoesNotRequireBodyAssets(t *testing.T) {
 	c.vitpose = missing
 	if _, err := load(c); err == nil {
 		t.Fatal("missing live model accepted")
+	}
+}
+
+func pipelineRequest(a *app, path string, index int, data []byte) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("PUT", path+"/frame", bytes.NewReader(data))
+	r.Header.Set("X-GEMX-Frame", strconv.Itoa(index))
+	a.route(w, r)
+	return w
+}
+
+func startPipeline(t *testing.T, a *app) string {
+	t.Helper()
+	w := liveRequest(a, "POST", "/api/live?pipeline=2", nil)
+	if w.Code != 201 {
+		t.Fatalf("start pipeline: %d %s", w.Code, w.Body)
+	}
+	var session struct{ ID string }
+	if err := json.Unmarshal(w.Body.Bytes(), &session); err != nil {
+		t.Fatal(err)
+	}
+	return "/api/live/" + session.ID
+}
+
+func waitPending(t *testing.T, s *liveSession, index int) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		s.queueMu.Lock()
+		pending := s.pending[index]
+		s.queueMu.Unlock()
+		if pending {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("frame was not admitted")
+}
+
+func TestLivePipelineOrdersAndBoundsFrames(t *testing.T) {
+	a := testLiveApp(t)
+	path := startPipeline(t, a)
+	frame := livePNG(t, 16)
+	second := make(chan *httptest.ResponseRecorder, 1)
+	// Simulate HTTP delivery reordering: the next frame arrives first.
+	go func() { second <- pipelineRequest(a, path, 2, frame) }()
+	waitPending(t, a.live, 2)
+	for _, index := range []int{0, 2, 3} {
+		if w := pipelineRequest(a, path, index, frame); w.Code != 409 {
+			t.Fatalf("index %d admitted: %d", index, w.Code)
+		}
+	}
+	select {
+	case <-second:
+		t.Fatal("frame 2 ran before frame 1")
+	default:
+	}
+	if w := pipelineRequest(a, path, 1, frame); w.Code != 204 || w.Header().Get("X-GEMX-Sequence") != "1" {
+		t.Fatalf("first: %d %s", w.Code, w.Body)
+	}
+	select {
+	case w := <-second:
+		if w.Code != 200 || w.Header().Get("X-GEMX-Sequence") != "2" || w.Header().Get("Server-Timing") == "" {
+			t.Fatalf("second: %d %s", w.Code, w.Body)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("queued frame stuck")
+	}
+	if w := pipelineRequest(a, path, 1, frame); w.Code != 409 {
+		t.Fatalf("replayed frame accepted: %d", w.Code)
+	}
+	liveRequest(a, "DELETE", path, nil)
+}
+
+func TestLivePipelineCancellationUnblocksQueue(t *testing.T) {
+	a := testLiveApp(t)
+	path := startPipeline(t, a)
+	frame := livePNG(t, 16)
+	s := a.live
+	second := make(chan *httptest.ResponseRecorder, 1)
+	go func() { second <- pipelineRequest(a, path, 2, frame) }()
+	waitPending(t, s, 2)
+	if w := liveRequest(a, "DELETE", path, nil); w.Code != 204 {
+		t.Fatalf("delete: %d", w.Code)
+	}
+	select {
+	case w := <-second:
+		if w.Code != 410 {
+			t.Fatalf("cancelled frame: %d", w.Code)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("cancelled frame stuck")
+	}
+	if _, err := os.Stat(s.dir); !os.IsNotExist(err) {
+		t.Fatalf("live directory retained: %v", err)
 	}
 }

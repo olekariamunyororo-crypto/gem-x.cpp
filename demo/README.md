@@ -73,10 +73,22 @@ validation. `--strict=false --bf16 --contacts=false` selects the approximate
 configuration; measurements from it should not be labelled strict parity.
 
 The resident native worker is `gemx-pipeline --live-worker`; it uses the same
-models and strict precision setting as the demo. The browser sends one frame
-at a time, so slow inference cannot build an upload queue. The server rejects
-concurrent frame requests, expires idle sessions after 30 seconds, and bounds
-startup/inference to 120 seconds. A gap over two seconds resets native temporal
+models and strict precision setting as the demo. The browser keeps at most two
+frames in flight: one being inferred and one being prepared/uploaded. It times
+capture of the next frame near the expected completion of the current one,
+using measured inference, encoding and transport costs to limit frame age.
+Independent image buffers keep each overlay matched to its source frame.
+
+`POST /api/live?pipeline=2` enables the bounded pipeline. Each frame PUT must
+include a one-based `X-GEMX-Frame` header. Upload/decode can overlap inference,
+but the native worker still processes frames strictly in sequence; duplicate
+or out-of-window requests receive 409. A failed admitted frame ends the session
+rather than silently changing temporal history. Requests without the pipeline
+option retain the serial API. `Server-Timing` exposes preparation, queue wait,
+packed-image write and native inference durations for profiling.
+
+The server expires idle sessions after 30 seconds and bounds startup/inference
+to 120 seconds. A gap over two seconds resets native temporal
 history. A stale pose disappears from the browser after two seconds.
 The worker accepts an optional final `DETECT_INTERVAL` argument, defaulting to
 1. `POST /api/live?detect_interval=N` selects it; requests without the option
@@ -89,3 +101,5 @@ not establish physical webcam quality or camera-to-robot latency. SONIC
 publishing is not connected to this demo.
 
 Recorded results: [live demo validation](../docs/live-demo-validation-2026-09-18.json).
+
+See [live pipeline measurements](../docs/LIVE-PIPELINING.md) for throughput, GPU counters, latency tradeoffs and byte-level replay checks.

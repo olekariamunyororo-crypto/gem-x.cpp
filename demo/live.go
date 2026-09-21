@@ -18,11 +18,18 @@ import (
 )
 
 // A live session owns the GPU until stopped or idle. HTTP frame requests are
-// serialized without queuing; model state stays in one native process.
+// processed in order; pipeline clients may prepare one following frame.
+// Model state stays in one native process.
 type liveSession struct {
 	id, dir                 string
 	width, height, sequence int
 	mu                      sync.Mutex
+	ctx                     context.Context
+	pipelined               bool
+	queueMu                 sync.Mutex
+	nextFrame               int
+	pending                 map[int]bool
+	advanced                chan struct{}
 	cancel                  context.CancelFunc
 	timer                   *time.Timer
 	input                   io.WriteCloser
@@ -49,6 +56,11 @@ func (l *liveLog) Write(p []byte) (int, error) {
 func (l *liveLog) String() string { l.mu.Lock(); defer l.mu.Unlock(); return string(l.text) }
 
 func (a *app) liveStart(w http.ResponseWriter, r *http.Request) {
+	pipeline := r.URL.Query().Get("pipeline")
+	if pipeline != "" && pipeline != "2" {
+		fail(w, 400, "pipeline must be 2 or omitted")
+		return
+	}
 	detectInterval := 1 // Requests without an option retain the upstream cadence.
 	if value := r.URL.Query().Get("detect_interval"); value != "" {
 		var err error
@@ -79,7 +91,7 @@ func (a *app) liveStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &liveSession{id: hex.EncodeToString(random), dir: dir, cancel: cancel, done: make(chan struct{})}
+	s := &liveSession{id: hex.EncodeToString(random), dir: dir, cancel: cancel, done: make(chan struct{}), ctx: ctx, pipelined: pipeline == "2", nextFrame: 1, pending: make(map[int]bool), advanced: make(chan struct{})}
 	c := a.cfg
 	cmd := exec.CommandContext(ctx, c.pipeline, "--live-worker", c.denoiser, c.vitpose, c.yolox, c.module, c.backend, strconv.Itoa(c.device), c.deviceName, strconv.Itoa(c.threads), "30", dir, strconv.Itoa(detectInterval))
 	cmd.Env = os.Environ()
@@ -168,19 +180,45 @@ func (a *app) liveRoute(w http.ResponseWriter, r *http.Request, parts []string) 
 		fail(w, 404, "not found")
 		return
 	}
-	if !s.mu.TryLock() {
-		fail(w, 409, "a camera frame is already being processed")
-		return
+	requestStarted := time.Now()
+	frameIndex := 0
+	if s.pipelined {
+		var err error
+		frameIndex, err = strconv.Atoi(r.Header.Get("X-GEMX-Frame"))
+		s.queueMu.Lock()
+		valid := err == nil && len(s.pending) < 2 && frameIndex >= s.nextFrame && frameIndex < s.nextFrame+2 && !s.pending[frameIndex]
+		if valid {
+			s.pending[frameIndex] = true
+		}
+		s.queueMu.Unlock()
+		if !valid {
+			fail(w, 409, "expected a unique frame in the two-frame pipeline window")
+			return
+		}
+		// An admitted frame cannot be skipped without changing temporal history.
+		defer func() {
+			s.queueMu.Lock()
+			delete(s.pending, frameIndex)
+			complete := s.nextFrame > frameIndex
+			s.queueMu.Unlock()
+			if !complete {
+				s.cancel()
+			}
+		}()
+	} else {
+		if !s.mu.TryLock() {
+			fail(w, 409, "a camera frame is already being processed")
+			return
+		}
+		defer s.mu.Unlock()
 	}
-	defer s.mu.Unlock()
-	select {
-	case <-s.done:
+	stopDisconnect := context.AfterFunc(r.Context(), s.cancel)
+	defer stopDisconnect()
+	if s.ctx.Err() != nil {
 		fail(w, 410, "live session ended")
 		return
-	default:
 	}
 	s.timer.Reset(120 * time.Second)
-	defer s.timer.Reset(30 * time.Second)
 	r.Body = http.MaxBytesReader(w, r.Body, maxFrameBytes)
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -192,18 +230,56 @@ func (a *app) liveRoute(w http.ResponseWriter, r *http.Request, parts []string) 
 		fail(w, 400, err)
 		return
 	}
+	packed := packImage(im)
+	prepared := time.Now()
+	if s.pipelined {
+		// Upload/decode happens outside the worker lock. Explicit sequence numbers
+		// keep temporal history ordered even if HTTP requests arrive out of order.
+		for {
+			s.queueMu.Lock()
+			ready, advanced := frameIndex == s.nextFrame, s.advanced
+			s.queueMu.Unlock()
+			if ready {
+				break
+			}
+			select {
+			case <-advanced:
+			case <-s.ctx.Done():
+				fail(w, 410, "live session ended")
+				return
+			case <-r.Context().Done():
+				return
+			}
+		}
+		s.mu.Lock()
+		defer s.mu.Unlock()
+	}
+	if s.ctx.Err() != nil {
+		fail(w, 410, "live session ended")
+		return
+	}
+	workerAcquired := time.Now()
+	defer func() {
+		if s.pipelined {
+			s.queueMu.Lock()
+			idle := len(s.pending) <= 1
+			s.queueMu.Unlock()
+			if !idle {
+				return
+			}
+		}
+		s.timer.Reset(30 * time.Second)
+	}()
 	width, height := im.Bounds().Dx(), im.Bounds().Dy()
 	if s.width != 0 && (s.width != width || s.height != height) {
 		fail(w, 409, "camera dimensions changed; restart live capture")
 		return
 	}
 	s.width, s.height = width, height
-	if err = os.WriteFile(filepath.Join(s.dir, "frame.input"), packImage(im), 0600); err != nil {
+	if err = os.WriteFile(filepath.Join(s.dir, "frame.input"), packed, 0600); err != nil {
 		fail(w, 500, err)
 		return
 	}
-	stopDisconnect := context.AfterFunc(r.Context(), s.cancel)
-	defer stopDisconnect()
 	started := time.Now()
 	if _, err = fmt.Fprintln(s.input, "FRAME"); err != nil {
 		s.cancel()
@@ -223,6 +299,16 @@ func (a *app) liveRoute(w http.ResponseWriter, r *http.Request, parts []string) 
 		return
 	}
 	s.sequence++
+	if s.pipelined {
+		s.queueMu.Lock()
+		s.nextFrame++
+		close(s.advanced)
+		s.advanced = make(chan struct{})
+		s.queueMu.Unlock()
+	}
+	w.Header().Set("Server-Timing", fmt.Sprintf("prepare;dur=%.3f, queue;dur=%.3f, write;dur=%.3f, infer;dur=%.3f",
+		prepared.Sub(requestStarted).Seconds()*1000, workerAcquired.Sub(prepared).Seconds()*1000,
+		started.Sub(workerAcquired).Seconds()*1000, time.Since(started).Seconds()*1000))
 	w.Header().Set("X-GEMX-Sequence", strconv.Itoa(s.sequence))
 	w.Header().Set("X-GEMX-People", fields[1])
 	w.Header().Set("X-GEMX-Inference-Ms", strconv.FormatInt(time.Since(started).Milliseconds(), 10))

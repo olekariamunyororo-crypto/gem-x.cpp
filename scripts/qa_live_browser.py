@@ -6,6 +6,7 @@ must already be running. Requires the sibling sam3d.cpp DevTools test helper.
 """
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -24,7 +25,11 @@ def main():
     p.add_argument('--chrome',default='chromium')
     p.add_argument('--detect-interval',type=int,default=7)
     p.add_argument('--poses',type=int,default=72)
-    a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True)
+    p.add_argument('--serial',action='store_true',help='Check the saved serial baseline binary')
+    p.add_argument('--nsys',type=Path,help='Sample GPU counters while the browser runs; directory containing target-linux-x64/nsys')
+    a=p.parse_args()
+    if len(os.sched_getaffinity(0))>8:p.error('restrict CPU affinity to eight cores')
+    a.output.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='gemx-camera-') as profile, (a.output/'chrome.log').open('w') as log:
         browser=subprocess.Popen([a.chrome,'--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
             '--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream',
@@ -43,19 +48,29 @@ def main():
             c.call('Page.navigate',dict(url=a.url))
             c.wait('typeof document.querySelector("#live-start")?.onclick === "function"')
             c.evaluate(f'document.querySelector("#detect-interval").value={a.detect_interval}')
-            c.evaluate('''window.qa={poses:0,pending:0,maxPending:0,sessionURL:null,timings:[]};window.realFetch=window.fetch;window.fetch=async(...args)=>{
+            c.evaluate('''window.qa={poses:0,pending:0,maxPending:0,sessionURL:null,timings:[],encodes:[]};const originalEncode=HTMLCanvasElement.prototype.toBlob;HTMLCanvasElement.prototype.toBlob=function(callback,...args){const start=performance.now();return originalEncode.call(this,blob=>{qa.encodes.push({start,end:performance.now()});callback(blob)},...args)};window.realFetch=window.fetch;window.fetch=async(...args)=>{
               if(String(args[0]).startsWith('/api/live?'))qa.sessionURL=String(args[0]);
               const frame=String(args[0]).endsWith('/frame');if(frame){qa.pending++;qa.maxPending=Math.max(qa.maxPending,qa.pending)}
               const start=performance.now();try{const r=await realFetch(...args);if(frame){qa.timings.push({start,end:performance.now(),native:Number(r.headers.get('X-GEMX-Inference-Ms')),timing:r.headers.get('Server-Timing')});if(r.status===200)qa.poses++}return r}finally{if(frame)qa.pending--}
             };document.querySelector('#live-start').click()''')
+            if a.nsys:
+                c.wait('window.qa.poses>=32',timeout=120)
+                root=Path(__file__).resolve().parents[1]
+                mountout='/work/'+str(a.output.resolve().relative_to(root))
+                command=['docker','run','--rm','--network','none','--cpuset-cpus','0-7','--cap-add','SYS_ADMIN','--device','nvidia.com/gpu=all','-v',str(a.nsys.resolve())+':/nsys:ro','-v',str(root)+':/work','--entrypoint','/nsys/target-linux-x64/nsys','gemx-reference:e2e','profile','--trace=none','--sample=none','--cpuctxsw=none','--gpu-metrics-devices=0','--gpu-metrics-set=gb20x-top','--gpu-metrics-frequency=10000','--duration=8','--export=sqlite','--output',mountout+'/gpu','sleep','8']
+                (a.output/'sampling-command.json').write_text(json.dumps(command,indent=2)+'\n')
+                with (a.output/'sampling.log').open('w') as samplelog:
+                    subprocess.run(command,stdout=samplelog,stderr=subprocess.STDOUT,check=True,timeout=60)
             c.wait(f'window.qa.poses>={a.poses}',timeout=120)
             c.screenshot(a.output/'live.png')
-            report=c.evaluate('({timings:qa.timings,sharedPreview:!document.querySelector("#skeleton").hidden&&document.querySelector(".stage").classList.contains("show-pose"),poses:qa.poses,maxPending:qa.maxPending,sessionURL:qa.sessionURL,intervalLocked:document.querySelector("#detect-interval").disabled,status:document.querySelector("#status").textContent,metrics:document.querySelector("#live-metrics").textContent,hasStream:!!document.querySelector("#video").srcObject})')
+            report=c.evaluate('({encodes:qa.encodes,timings:qa.timings,sharedPreview:!document.querySelector("#skeleton").hidden&&document.querySelector(".stage").classList.contains("show-pose"),poses:qa.poses,maxPending:qa.maxPending,sessionURL:qa.sessionURL,intervalLocked:document.querySelector("#detect-interval").disabled,status:document.querySelector("#status").textContent,metrics:document.querySelector("#live-metrics").textContent,hasStream:!!document.querySelector("#video").srcObject})')
             assert report['maxPending']<=2 and report['hasStream'] and report['sharedPreview'],report
-            assert report['sessionURL']==f'/api/live?detect_interval={a.detect_interval}' and report['intervalLocked'],report
+            assert report['sessionURL']==f'/api/live?detect_interval={a.detect_interval}'+('' if a.serial else '&pipeline=2') and report['intervalLocked'],report
             c.evaluate('document.querySelector("#live-stop").click()')
             c.wait('document.querySelector("#video").srcObject!==null && document.querySelector("#skeleton").hidden && !document.querySelector(".stage").classList.contains("show-pose") && !document.querySelector("#live-start").disabled')
             c.screenshot(a.output/'stopped-camera.png')
+            c.evaluate('document.querySelector("#live-stop").click()')
+            c.wait('document.querySelector("#video").srcObject===null && !document.querySelector("#live-start").disabled')
             # Stop waits for the worker to release GPU ownership before restart.
             time.sleep(.5)
             before=c.evaluate('qa.poses')
@@ -76,7 +91,7 @@ def main():
             assert not failures,failures
             report.update(restart=True,offline_switch=True,permission_error_recovery=True,browser_exceptions=failures)
             (a.output/'browser.json').write_text(json.dumps(report,indent=2)+'\n')
-            print(json.dumps(report))
+            print(json.dumps({k:v for k,v in report.items() if k not in ('timings','encodes')}))
         finally:
             browser.terminate()
             try:browser.wait(timeout=10)

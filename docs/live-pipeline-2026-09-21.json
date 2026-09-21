@@ -1,0 +1,77 @@
+{
+  "serial": {
+    "frames": 312,
+    "fps": 13.279588716992475,
+    "native_ms": 64.875,
+    "encode_to_headers_ms": 70.9775641147907,
+    "encode_to_headers_p95_ms": 115.0,
+    "interframe_overhead_ms": 10.573633440821117,
+    "max_pending": 1,
+    "gpu_mean": {
+      "Sync Compute in Flight [Throughput %]": 81.82343070229956,
+      "PCIe Throughput [Throughput %]": 1.1093847110006214,
+      "VRAM Total Bandwidth [Throughput %]": 9.495811062771908,
+      "SM Throughput [Throughput %]": 38.148402734617775,
+      "SM FMA Pipe Throughput [Throughput %]": 25.34141702921069,
+      "Async CS SM Warps [Occupancy %]": 18.927234307022996
+    }
+  },
+  "lookahead": {
+    "frames": 353,
+    "fps": 15.348658736590146,
+    "native_ms": 64.51274787535411,
+    "encode_to_headers_ms": 76.43201132469069,
+    "encode_to_headers_p95_ms": 121.5,
+    "interframe_overhead_ms": 0.7659090906381607,
+    "max_pending": 2,
+    "server_ms": {
+      "prepare": 2.2727960339943345,
+      "queue": 5.89971671388102,
+      "write": 0.22048441926345608,
+      "infer": 64.94223512747875
+    },
+    "gpu_mean": {
+      "Sync Compute in Flight [Throughput %]": 93.45267704871095,
+      "PCIe Throughput [Throughput %]": 1.1204640798695398,
+      "VRAM Total Bandwidth [Throughput %]": 10.76763640437689,
+      "SM Throughput [Throughput %]": 43.79956679239646,
+      "SM FMA Pipe Throughput [Throughput %]": 29.101318295552154,
+      "Async CS SM Warps [Occupancy %]": 21.67164606440851
+    }
+  },
+  "native_api_per_frame": {
+    "upload": {
+      "wall_ms": 0.10564445132743362,
+      "bytes": 2193286.9380530976
+    },
+    "download": {
+      "wall_ms": 0.34286809734513274,
+      "bytes": 2004665.628318584
+    },
+    "record_submit": {
+      "wall_ms": 3.154902646017699,
+      "bytes": 0.0
+    },
+    "synchronize": {
+      "wall_ms": 57.96723034513275,
+      "bytes": 0.0
+    }
+  },
+  "native_api_frames": 113,
+  "notes": [
+    "RTX 5070 Ti; strict F32; eight CPU cores; browser detector interval 5 and 20 fps cap.",
+    "Headless simulated webcam and localhost HTTP; encoder start to response headers is a latency proxy, not physical camera-to-display latency.",
+    "External GPU sampling at 10 kHz for eight seconds after warm-up; system-wide counters. Browser input samples differ between A/B runs.",
+    "API synchronize duration includes GPU execution; it is not GPU idle time. Upload/download durations are CPU API wall time, not isolated DMA timings."
+  ],
+  "parity": {
+    "byte_identical": true,
+    "poses": 143,
+    "detect_interval": 5
+  },
+  "parity-upstream-cadence": {
+    "byte_identical": true,
+    "poses": 143,
+    "detect_interval": 1
+  }
+}

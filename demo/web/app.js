@@ -26,9 +26,9 @@ function cameraControls(){
   $('rate-label').textContent=live?'Rate cap':'Sample rate';
   liveStop.textContent=liveRunning?'Stop inference':'Close camera';
   updatePreview();
-  liveStart.disabled=liveRunning||liveStopping||offlineBusy;liveStop.disabled=!liveRunning&&!stream;
+  liveStart.disabled=liveRunning||liveStopping||offlineBusy;liveStop.disabled=liveStopping||(!liveRunning&&!stream);
   camera.disabled=liveRunning||liveStopping||offlineBusy||!!stream;cameraDevice.disabled=liveRunning||liveStopping||offlineBusy;
-  record.disabled=!stream||live;mode.disabled=offlineBusy;file.disabled=offlineBusy;
+  record.disabled=!stream||live;mode.disabled=offlineBusy||liveStopping;file.disabled=offlineBusy;
   $('capture-hint').textContent=live?'Keep the camera still and your whole body in view. Between detections, stay in the same area while moving your limbs. Set 1 to detect every frame.':'Record a clip or choose a video, then build motion using the complete sequence.';
 }
 function closeCamera(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.controls=true;video.classList.remove('ready');empty.hidden=false;cameraControls()}
@@ -66,32 +66,56 @@ liveStart.onclick=async()=>{
     message('Loading live models…',0);
     const detectionInterval=Number($('detect-interval').value);
     if(!Number.isInteger(detectionInterval)||detectionInterval<1||detectionInterval>30)throw new Error('Detection interval must be a whole number from 1 to 30.');
-    const session=await api(`/api/live?detect_interval=${detectionInterval}`,{method:'POST',signal:liveAbort.signal});
+    const session=await api(`/api/live?detect_interval=${detectionInterval}&pipeline=2`,{method:'POST',signal:liveAbort.signal});
     if(epoch!==liveEpoch){fetch(`/api/live/${session.id}`,{method:'DELETE'}).catch(()=>{});return}
     liveID=session.id;
     const ratio=Math.min(1,960/Math.max(video.videoWidth,video.videoHeight)),width=Math.max(8,Math.round(video.videoWidth*ratio)),height=Math.max(8,Math.round(video.videoHeight*ratio));
-    const capture=document.createElement('canvas');capture.width=width;capture.height=height;
-    const captureContext=capture.getContext('2d',{alpha:false});
+    // Two separate image buffers retain the exact source image for each result.
+    // Start preparing the next frame shortly before the current inference ends.
+    const buffers=Array.from({length:2},()=>{const c=document.createElement('canvas');c.width=width;c.height=height;return c});
     liveDisplayed=document.createElement('canvas');liveDisplayed.width=width;liveDisplayed.height=height;
-    job={width,height};view.value='overlay';let previousResult=null;
-    while(epoch===liveEpoch){
+    job={width,height};view.value='overlay';let previousResult=null,encodeMs=5,transportMs=4,plainMs=55,detectMs=110,nextDetection=1;
+    const signal=liveAbort.signal,url=`/api/live/${liveID}/frame`;
+    const submit=async(index,earliest=0)=>{
+      await new Promise(resolve=>setTimeout(resolve,Math.max(0,earliest-performance.now())));
+      if(epoch!==liveEpoch)return null;
       if(video.readyState<2)throw new Error('Camera stopped delivering frames.');
-      const captured=performance.now();captureContext.drawImage(video,0,0,width,height);
-      const blob=await jpeg(capture);if(epoch!==liveEpoch)break;
-      const response=await fetch(`/api/live/${liveID}/frame`,{method:'PUT',headers:{'Content-Type':'image/jpeg'},body:blob,signal:liveAbort.signal});
-      if(!response.ok){const error=await response.json();throw new Error(error.error||'Live inference failed')}
+      const capture=buffers[(index-1)%2],captured=performance.now();
+      capture.getContext('2d',{alpha:false}).drawImage(video,0,0,width,height);
+      const blob=await jpeg(capture);if(epoch!==liveEpoch)return null;
+      const sent=performance.now();encodeMs=.75*encodeMs+.25*(sent-captured);
+      const result=(async()=>{
+        const response=await fetch(url,{method:'PUT',headers:{'Content-Type':'image/jpeg','X-GEMX-Frame':String(index)},body:blob,signal});
+        if(!response.ok){const error=await response.json();throw new Error(error.error||'Live inference failed')}
+        if(Number(response.headers.get('X-GEMX-Sequence'))!==index)throw new Error('Live frame sequence mismatch');
+        const pose=response.status===204?null:parsePose(await response.arrayBuffer());
+        const queued=Number(response.headers.get('Server-Timing')?.match(/(?:^|,\s*)queue;dur=([\d.]+)/)?.[1]||0);
+        return {pose,queued,now:performance.now(),inference:Number(response.headers.get('X-GEMX-Inference-Ms')),people:Number(response.headers.get('X-GEMX-People'))};
+      })().then(value=>({value}),error=>({error}));
+      return {index,capture,captured,sent,result};
+    };
+    // Always handle a lookahead rejection, including stop/restart during encoding.
+    const outcome=p=>p.then(value=>({value}),error=>({error}));
+    let current=await submit(1);
+    while(current&&epoch===liveEpoch){
+      const detecting=current.index>=nextDetection;
+      const cap=Math.max(1,Math.min(30,Number($('fps').value)||10));
+      const predicted=detecting?detectMs:plainMs;
+      const next=outcome(submit(current.index+1,Math.max(current.captured+1000/cap,Math.max(current.sent,previousResult||0)+predicted-encodeMs-transportMs-4)));
+      const received=await current.result;if(received.error)throw received.error;
       if(epoch!==liveEpoch)break;
-      const now=performance.now(),age=Math.round(now-captured),inference=response.headers.get('X-GEMX-Inference-Ms'),people=Number(response.headers.get('X-GEMX-People'));
-      if(response.status===204){clearPreview();message('Warming up · waiting for the second frame…',0)}
+      const {pose,queued,now,inference,people}=received.value,age=Math.round(now-current.captured);
+      transportMs=.75*transportMs+.25*Math.max(0,now-current.sent-inference-queued);
+      if(detecting)detectMs=.75*detectMs+.25*inference;else plainMs=.75*plainMs+.25*inference;
+      if(detecting)nextDetection=current.index+(people?detectionInterval:1);
+      if(!pose){clearPreview();message('Warming up · waiting for the second frame…',0)}
       else {
-        const pose=parsePose(await response.arrayBuffer());if(epoch!==liveEpoch)break;
-        liveDisplayed.getContext('2d').drawImage(capture,0,0);lastLivePose=performance.now();draw(pose);legend.hidden=view.value!=='overlay';
+        liveDisplayed.getContext('2d').drawImage(current.capture,0,0);lastLivePose=performance.now();draw(pose);
         message(people?'Live · keep your whole body in view':'Live · no person detected; using the full frame',100);
       }
       $('live-metrics').textContent=`${previousResult?(1000/(now-previousResult)).toFixed(1):'—'} fps · ${age} ms frame age · ${inference} ms inference · 30-frame context`;
       previousResult=now;
-      const cap=Math.max(1,Math.min(30,Number($('fps').value)||10));
-      await new Promise(resolve=>setTimeout(resolve,Math.max(0,1000/cap-(performance.now()-captured))));
+      const prepared=await next;if(prepared.error)throw prepared.error;current=prepared.value;
     }
   }catch(e){if(epoch===liveEpoch)await stopLive(e.name==='AbortError'?'Live stopped.':e.message)}
 };
@@ -144,7 +168,7 @@ function drawOverlay(pose){
 }
 function draw(pose){latestPose=pose;updatePreview();if(view.value==='overlay')drawOverlay(pose);else drawGlobal(pose)}
 view.onchange=()=>{legend.hidden=view.value!=='overlay'||!latestPose;if(latestPose)draw(latestPose)};
-async function animate(value){const cache=new Map();let previous=-1,fallback=0,last=performance.now();while(playing&&job?.id===value.id){const now=performance.now();let index;if(video.readyState>=2&&Number.isFinite(video.currentTime))index=Math.min(value.frames-1,Math.floor(video.currentTime*value.fps));else if(now-last>=1000/value.fps){last=now;index=fallback++%value.frames}else index=previous;if(index>=0&&index!==previous){previous=index;try{let pose=cache.get(index);if(!pose){const response=await fetch(`/api/jobs/${value.id}/poses/${String(index).padStart(6,'0')}`);if(!response.ok)throw new Error('pose unavailable');pose=parsePose(await response.arrayBuffer());cache.set(index,pose)}draw(pose)}catch(e){message(e.message);playing=false;clearPreview()}}await new Promise(requestAnimationFrame)}}
+async function animate(value){const cache=new Map();let previous=-1,fallback=0,last=performance.now();while(playing&&job?.id===value.id){const now=performance.now();let index;if(video.readyState>=2&&Number.isFinite(video.currentTime))index=Math.min(value.frames-1,Math.floor(video.currentTime*value.fps));else if(now-last>=1000/value.fps){last=now;index=fallback++%value.frames}else index=previous;if(index>=0&&index!==previous){previous=index;try{let pose=cache.get(index);if(!pose){const response=await fetch(`/api/jobs/${value.id}/poses/${String(index).padStart(6,'0')}`);if(!response.ok)throw new Error('pose unavailable');pose=parsePose(await response.arrayBuffer());cache.set(index,pose)}if(!playing||job?.id!==value.id)break;draw(pose)}catch(e){if(!playing||job?.id!==value.id)break;message(e.message);playing=false;clearPreview()}}await new Promise(requestAnimationFrame)}}
 
 $('playback').onclick=()=>video.paused?video.play().catch(e=>message(e.message)):video.pause();
 video.addEventListener('play',()=>{$('playback').textContent='Pause playback'});
