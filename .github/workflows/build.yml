@@ -5,22 +5,24 @@ permissions:
 jobs:
   native:
     runs-on: ubuntu-24.04
+    container: debian:trixie-slim
     strategy:
       matrix:
         preset: [release, vulkan]
     steps:
+      - run: apt-get update && apt-get install -y build-essential cmake ninja-build git ca-certificates libvulkan-dev glslc spirv-headers
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run: sudo apt-get update && sudo apt-get install -y ninja-build libvulkan-dev glslc spirv-headers
       - run: cmake --preset ${{ matrix.preset }} && cmake --build --preset ${{ matrix.preset }} -j8 && ctest --preset ${{ matrix.preset }}
   fuzz:
     runs-on: ubuntu-24.04
+    container: debian:trixie-slim
     steps:
+      - run: apt-get update && apt-get install -y build-essential clang libclang-rt-dev cmake ninja-build git ca-certificates python3
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run: sudo apt-get update && sudo apt-get install -y clang libclang-rt-dev ninja-build
       - run: cmake -S . -B build/fuzz -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DGEMX_FUZZ=ON -DGEMX_SANITIZERS=ON -DGGML_CPU_ALL_VARIANTS=OFF
       - run: cmake --build build/fuzz -j8 && ctest --test-dir build/fuzz --output-on-failure
       - run: python3 scripts/seed_fuzz.py build/fuzz/corpus
@@ -40,6 +42,6 @@ jobs:
         run: go test -race -p 8 ./... && go build -p 8 -o gemx-demo .
       - working-directory: demo
         run: |
-          for target in FuzzImage FuzzPackedBox FuzzCreateJSON; do
+          for target in FuzzImage FuzzPackedBox FuzzCreateJSON FuzzDetectorBoxes; do
             go test -parallel 4 -fuzz="$target" -fuzztime=15s -run='^$'
           done

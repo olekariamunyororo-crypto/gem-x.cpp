@@ -1,0 +1,94 @@
+{
+  "date": "2026-09-21",
+  "platform": "Debian 13 amd64 container, no Nix or network during builds",
+  "ggml_revision": "e91ded11bdcd78c42f9c8d3978ff6686eb4c1226",
+  "cpu_affinity": "0-7",
+  "max_build_jobs": 8,
+  "initial_fresh_checkout": "0a55308",
+  "builds": {
+    "release": {
+      "passed": true,
+      "ctest_passed": 6
+    },
+    "vulkan": {
+      "passed": true,
+      "ctest_passed": 6
+    },
+    "clang_asan_ubsan": {
+      "passed": true,
+      "ctest_passed": 6
+    },
+    "go_race": {
+      "passed": true
+    },
+    "installed_cli": {
+      "passed": true
+    }
+  },
+  "fuzz": [
+    {
+      "name": "native_parsers",
+      "seconds": 60,
+      "executions": 4069512,
+      "findings": 0
+    },
+    {
+      "name": "native_api",
+      "seconds": 60,
+      "executions": 2193,
+      "findings": 0
+    },
+    {
+      "name": "image",
+      "seconds": 30,
+      "executions": 3043587,
+      "findings": 0
+    },
+    {
+      "name": "packed_box",
+      "seconds": 30,
+      "executions": 3024610,
+      "findings": 0
+    },
+    {
+      "name": "job_json",
+      "seconds": 30,
+      "executions": 386623,
+      "findings": 0
+    },
+    {
+      "name": "detector_boxes",
+      "seconds": 30,
+      "executions": 3025889,
+      "findings": 0
+    }
+  ],
+  "model_hashes_verified": {
+    "gem-x-contact-f32.gguf": {
+      "bytes": 177334400,
+      "sha256": "175857b8453b65d028f3703d813c3186b31b66ea65fbdb94e64308c39e083f78"
+    },
+    "vitpose-f32.gguf": {
+      "bytes": 3387861248,
+      "sha256": "272c75d4c3a6a740f1eb3f3222832de206150fa035c134af17e66ca9f8386d11"
+    },
+    "yolox-f32.gguf": {
+      "bytes": 396106720,
+      "sha256": "2be3d28e0dd8a171f4ad980b3dfbddaa1ecb88e478c612bc11379913908e7b78"
+    }
+  },
+  "browser": {
+    "simulated_camera": true,
+    "mobile_width": 390,
+    "mobile_height": 844,
+    "exceptions": 0,
+    "max_pending": 2
+  },
+  "raw_directory": "generated/release-audit",
+  "limitations": [
+    "No untrusted GGUF fuzz campaign",
+    "No physical camera or robot validation",
+    "Model-free CTest in generic build container; model parity separately checked on host",
+    "CI workflow prepared; remote CI not run"
+  ]
+}

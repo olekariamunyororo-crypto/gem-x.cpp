@@ -39,6 +39,7 @@ build/fuzz/gemx-fuzz-api build/fuzz/corpus/api -max_total_time=60 -max_len=8192
 (cd demo && GOMAXPROCS=8 go test -parallel 4 -fuzz=FuzzImage -fuzztime=30s -run='^$')
 (cd demo && GOMAXPROCS=8 go test -parallel 4 -fuzz=FuzzPackedBox -fuzztime=30s -run='^$')
 (cd demo && GOMAXPROCS=8 go test -parallel 4 -fuzz=FuzzCreateJSON -fuzztime=30s -run='^$')
+(cd demo && GOMAXPROCS=8 go test -parallel 4 -fuzz=FuzzDetectorBoxes -fuzztime=30s -run='^$')
 ```
 
 The native harness calls the production stream parsers for S3DIMG01 RGB frames,
@@ -47,7 +48,7 @@ numbers. It never opens paths from fuzz input. The API harness covers observatio
 and camera arrays, motion denormalization, 6D rotations, RGB capacities/strides,
 ViTPose crops and YOLOX preprocessing. Caller-owned memory is bounded; arbitrary
 invalid C pointers are outside the API contract. The Go targets cover JPEG/PNG
-decoding/packing, box patching and job-description JSON.
+decoding/packing, box patching, detector box responses and job-description JSON.
 
 These are bounded sanitizer campaigns, not a guarantee that all malformed
 inputs are safe. GGUF loading is explicitly outside this campaign. Browser

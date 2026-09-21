@@ -37,6 +37,13 @@ func readBoxes(path string, count int) ([][4]float32, error) {
 	if err != nil {
 		return nil, err
 	}
+	return parseBoxes(b, count)
+}
+
+func parseBoxes(b []byte, count int) ([][4]float32, error) {
+	if count < 1 || count > maxFrames {
+		return nil, fmt.Errorf("invalid detector frame count")
+	}
 	if len(b) != 12+count*16 || string(b[:8]) != "GEMBOX01" || int(binary.LittleEndian.Uint32(b[8:12])) != count {
 		return nil, fmt.Errorf("invalid detector box output")
 	}
@@ -45,6 +52,9 @@ func readBoxes(path string, count int) ([][4]float32, error) {
 	for i := range boxes {
 		for axis := range boxes[i] {
 			boxes[i][axis] = math.Float32frombits(binary.LittleEndian.Uint32(b[at:]))
+			if math.IsNaN(float64(boxes[i][axis])) || math.IsInf(float64(boxes[i][axis]), 0) {
+				return nil, fmt.Errorf("nonfinite detector box")
+			}
 			at += 4
 		}
 	}

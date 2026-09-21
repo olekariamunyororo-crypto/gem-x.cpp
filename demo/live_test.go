@@ -151,6 +151,10 @@ func TestLiveStartupDoesNotRequireBodyAssets(t *testing.T) {
 	if _, err := load(c); err != nil {
 		t.Fatalf("live startup requires Body assets: %v", err)
 	}
+	c.module = dir // CPU variants are selected from a backend directory.
+	if _, err := load(c); err != nil {
+		t.Fatalf("backend directory rejected: %v", err)
+	}
 	c.vitpose = missing
 	if _, err := load(c); err == nil {
 		t.Fatal("missing live model accepted")

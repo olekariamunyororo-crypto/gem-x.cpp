@@ -67,3 +67,27 @@ func FuzzCreateJSON(f *testing.F) {
 		}
 	})
 }
+
+func FuzzDetectorBoxes(f *testing.F) {
+	seed := make([]byte, 28)
+	copy(seed, "GEMBOX01")
+	binary.LittleEndian.PutUint32(seed[8:], 1)
+	f.Add(seed, 1)
+	f.Add([]byte{}, -1)
+	f.Fuzz(func(t *testing.T, data []byte, count int) {
+		boxes, err := parseBoxes(data, count)
+		if err != nil {
+			return
+		}
+		if len(boxes) != count || count < 1 || count > maxFrames {
+			t.Fatal("invalid accepted count")
+		}
+		for _, box := range boxes {
+			for _, value := range box {
+				if math.IsNaN(float64(value)) || math.IsInf(float64(value), 0) {
+					t.Fatal("invalid accepted coordinate")
+				}
+			}
+		}
+	})
+}

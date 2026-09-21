@@ -64,6 +64,8 @@ def main():
                 with (a.output/'sampling.log').open('w') as samplelog:
                     subprocess.run(command,stdout=samplelog,stderr=subprocess.STDOUT,check=True,timeout=60)
             c.wait(f'window.qa.poses>={a.poses}',timeout=120)
+            if not a.serial:
+                c.wait('document.querySelector(".brand img")?.naturalWidth>0')
             c.screenshot(a.output/'live.png')
             report=c.evaluate('({encodes:qa.encodes,timings:qa.timings,sharedPreview:!document.querySelector("#skeleton").hidden&&document.querySelector(".stage").classList.contains("show-pose"),poses:qa.poses,maxPending:qa.maxPending,sessionURL:qa.sessionURL,intervalLocked:document.querySelector("#detect-interval").disabled,status:document.querySelector("#status").textContent,metrics:document.querySelector("#live-metrics").textContent,hasStream:!!document.querySelector("#video").srcObject})')
             assert report['maxPending']<=2 and report['hasStream'] and report['sharedPreview'],report
@@ -71,6 +73,11 @@ def main():
             c.evaluate('document.querySelector("#live-stop").click()')
             c.wait('document.querySelector("#video").srcObject!==null && document.querySelector("#skeleton").hidden && !document.querySelector(".stage").classList.contains("show-pose") && !document.querySelector("#live-start").disabled')
             c.screenshot(a.output/'stopped-camera.png')
+            if not a.serial:
+                c.call('Emulation.setDeviceMetricsOverride',dict(width=390,height=844,deviceScaleFactor=1,mobile=True))
+                assert c.evaluate('document.documentElement.scrollWidth<=window.innerWidth'), 'mobile layout overflows'
+                c.screenshot(a.output/'mobile.png')
+                c.call('Emulation.clearDeviceMetricsOverride')
             c.evaluate('document.querySelector("#live-stop").click()')
             c.wait('document.querySelector("#video").srcObject===null && !document.querySelector("#live-start").disabled')
             # Stop waits for the worker to release GPU ownership before restart.

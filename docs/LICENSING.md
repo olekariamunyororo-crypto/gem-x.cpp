@@ -45,3 +45,8 @@ usage or redistribution conditions.
 Upstream license/source pages were checked on 2026-09-21. The pinned source and
 asset revisions in `reference/sources.json` remain authoritative for conversion;
 license-page links document terms rather than silently updating model inputs.
+
+The official downloadable NVIDIA agreement (version October 24, 2025) is
+preserved at `LICENSES/NVIDIA-Open-Model-2025-10-24.pdf`, SHA-256
+`4d2fb590aa9b30c47f2058bff17291df7fa2aa0c1bd775a20703da9bb267cfab`.
+It was retrieved from NVIDIA's linked license PDF, without modifying its text.
