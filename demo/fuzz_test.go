@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"image"
+	"image/jpeg"
 	"image/png"
 	"math"
 	"testing"
@@ -13,6 +14,9 @@ func FuzzImage(f *testing.F) {
 	var seed bytes.Buffer
 	_ = png.Encode(&seed, image.NewRGBA(image.Rect(0, 0, 8, 8)))
 	f.Add(seed.Bytes())
+	var jpegSeed bytes.Buffer
+	_ = jpeg.Encode(&jpegSeed, image.NewRGBA(image.Rect(0, 0, 8, 8)), nil)
+	f.Add(jpegSeed.Bytes())
 	f.Add([]byte("not an image"))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		if len(data) > maxFrameBytes {

@@ -8,7 +8,7 @@ No `generated/`, old build directories, weights, Nix store, sibling repositories
 or host toolchain were mounted into the build container. Network access was
 disabled during builds/tests. All build/runtime processes used CPU affinity 0–7
 and at most eight build jobs. The initial audited revision was `0a55308`; the
-checkout was then advanced to the follow-up audit changes and checks repeated.
+checkout was then advanced to `c9a12cb` and all build/test checks repeated.
 
 The stock Debian 13 toolchain was:
 
@@ -57,7 +57,7 @@ Seeded campaigns ran with no crashes, sanitizer findings or failing inputs:
 | --- | --- | ---: | ---: |
 | Packed RGB, Body tensor records, poses, all manifest versions, CLI numbers | Clang libFuzzer + ASan/UBSan | 60 s | 4,069,512 |
 | Observation/camera arrays, rotations/motion, RGB strides/capacities and ViTPose/YOLOX preparation | Clang libFuzzer + ASan/UBSan | 60 s | 2,193 |
-| JPEG/PNG decode and RGB packing | Go fuzz, 4 workers | 30 s | 3,043,587 |
+| JPEG/PNG decode and RGB packing | Go fuzz, 4 workers | 30 s | 3,060,601 |
 | Packed-image box patching | Go fuzz, 4 workers | 30 s | 3,024,610 |
 | Job JSON | Go fuzz, 4 workers | 30 s | 386,623 |
 | Detector box records/counts | Go fuzz, 4 workers | 30 s | 3,025,889 |
@@ -103,11 +103,12 @@ using the same logo asset. It retains the shared raw-camera/skeleton viewport.
 Real-inference Chromium checks cover desktop and mobile layout, loaded branding,
 stop-to-camera, close/restart, offline-mode switching, permission denial and the
 two-request bound, without JavaScript exceptions. The mobile viewport had no
-horizontal overflow. These use a simulated webcam, not a physical camera.
+horizontal overflow. The same checks passed on the deployed HTTPS devroute. These use a simulated
+webcam, not a physical camera.
 
 After the native parser refactor and generic device selection, the 144-frame
-strict-F32 live replay is compared against the accepted profile's complete pose
-hashes. This preserves the existing upstream parity scope; it does not establish
+strict-F32 live replay emitted **143 byte-identical poses** against the accepted
+profile's complete pose hashes. This preserves the existing upstream parity scope; it does not establish
 new upstream or physical robot validation. See LIVE-OFFLINE-PARITY.md for limits.
 
 Raw build/fuzz logs, toolchain versions, parity report and screenshots are kept

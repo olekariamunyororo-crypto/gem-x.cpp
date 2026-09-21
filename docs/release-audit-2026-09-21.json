@@ -41,7 +41,7 @@
     {
       "name": "image",
       "seconds": 30,
-      "executions": 3043587,
+      "executions": 3060601,
       "findings": 0
     },
     {
@@ -79,6 +79,7 @@
   },
   "browser": {
     "simulated_camera": true,
+    "devroute_https_passed": true,
     "mobile_width": 390,
     "mobile_height": 844,
     "exceptions": 0,
@@ -90,5 +91,12 @@
     "No physical camera or robot validation",
     "Model-free CTest in generic build container; model parity separately checked on host",
     "CI workflow prepared; remote CI not run"
-  ]
+  ],
+  "validated_source_revision": "c9a12cb",
+  "native_replay": {
+    "frames": 144,
+    "poses": 143,
+    "byte_identical": true,
+    "detect_interval": 5
+  }
 }
