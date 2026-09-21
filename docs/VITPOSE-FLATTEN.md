@@ -1,5 +1,7 @@
 # Combining crop and flip projection matrices — 2026-09-20
 
+Update 2026-09-21: the validated winners are now [enabled by default](VITPOSE-DEFAULTS.md). The measurements and opt-in descriptions below record the original experiments.
+
 Combining the two 197-token projection matrices into one 394-token matrix
 reduces strict-F32 ViTPose inference from **54.450 to 52.001 ms (4.5%)** on
 the RTX 5070 Ti, provided the existing output-tile tuning is retained.

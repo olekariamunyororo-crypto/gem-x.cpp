@@ -73,6 +73,10 @@ build-directory copy of GGML; the upstream submodule stays unchanged.
 Set `GEMX_VITPOSE_TILES=0` at runtime or configure with
 `-DGEMX_VITPOSE_TILES=OFF` to use upstream selection. See the
 [tile experiment and validation](docs/VITPOSE-TILE-TUNING.md).
+ViTPose now enables the validated flattening, normalization/SwiGLU fusions,
+64×64 expansion tile and 64×64/128-thread QKV layout by default.
+FlashAttention and packed gate/up remain disabled. See
+[defaults and diagnostic opt-outs](docs/VITPOSE-DEFAULTS.md).
 
 Runtime inference uses GGUF files produced from hash-verified official assets.
 PyTorch, ONNX Runtime, OpenCV, and Python are conversion/reference dependencies;

@@ -29,6 +29,8 @@ assets are needed for offline jobs.
 
 The offline path uses future context from the complete clip.
 
+Native ViTPose automatically uses the [validated optimization defaults](../docs/VITPOSE-DEFAULTS.md); no performance environment flags are needed.
+
 The native stages are:
 
 1. YOLOX plus ByteTrack detects people, selects the dominant track, fills

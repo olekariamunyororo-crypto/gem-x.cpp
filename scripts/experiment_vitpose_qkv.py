@@ -22,7 +22,7 @@ def main():
     env={k:v for k,v in os.environ.items() if not k.startswith(('GGML_VK_','GEMX_VITPOSE_','GEMX_BENCHMARK_'))}
     env.pop('LD_PRELOAD',None)
     env.update(GGML_VK_DISABLE_F16='1',GGML_VK_DISABLE_COOPMAT='1',GGML_VK_DISABLE_COOPMAT2='1',
-        GEMX_VITPOSE_FLATTEN='1',GEMX_VITPOSE_NORM='1',GEMX_VITPOSE_SWIGLU='1',GEMX_VITPOSE_RECT_GROUP='up',GEMX_VITPOSE_RECT='64x64',
+        GEMX_VITPOSE_QKV_LAYOUT='0',GEMX_VITPOSE_FLATTEN='1',GEMX_VITPOSE_NORM='1',GEMX_VITPOSE_SWIGLU='1',GEMX_VITPOSE_RECT_GROUP='up',GEMX_VITPOSE_RECT='64x64',
         GEMX_BENCHMARK_WARMUP='10',GEMX_BENCHMARK_INPUT=str(a.input.resolve()),OMP_NUM_THREADS='8',OPENBLAS_NUM_THREADS='8')
     report={'input_sha256':hashlib.sha256(a.input.read_bytes()).hexdigest(),'iterations':a.iterations,'warmups':10,
             'cpu_affinity':sorted(os.sched_getaffinity(0)),'env':{k:v for k,v in env.items() if k.startswith(('GEMX_','GGML_VK_'))},'runs':{}}

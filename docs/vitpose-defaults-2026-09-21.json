@@ -1,0 +1,487 @@
+{
+  "cpu_affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "warmups": 10,
+  "module": "/home/rich/c/gem-x.cpp/build/vulkan/bin/libggml-vulkan.so",
+  "vitpose_env": {},
+  "revision": "a33288a1b24790c832e83758325067bc830e6ac8",
+  "ggml_revision": "e91ded11bdcd78c42f9c8d3978ff6686eb4c1226",
+  "input": "/home/rich/c/gem-x.cpp/generated/vitpose-cuda-match-20260920/input.f32",
+  "device": "name, driver_version, memory.total [MiB], power.limit [W]\nNVIDIA GeForce RTX 5070 Ti, 595.71.05, 16303 MiB, 300.00 W",
+  "runs": {
+    "baseline": {
+      "batch": 2,
+      "iterations": 200,
+      "wall_ms": {
+        "mean": 48.921607775,
+        "median": 48.9725215,
+        "p95": 49.146531,
+        "minimum": 48.448038,
+        "maximum": 49.755011
+      },
+      "process_cpu_ms": {
+        "mean": 13.44139,
+        "median": 13.598,
+        "p95": 14.065,
+        "minimum": 9.12,
+        "maximum": 15.553
+      },
+      "telemetry_samples": 78,
+      "telemetry": {
+        "utilization.gpu": {
+          "mean": 98.12820512820512,
+          "median": 98.0,
+          "p95": 99.0,
+          "minimum": 98.0,
+          "maximum": 99.0
+        },
+        "utilization.memory": {
+          "mean": 23.243589743589745,
+          "median": 23.0,
+          "p95": 24.0,
+          "minimum": 23.0,
+          "maximum": 24.0
+        },
+        "power.draw": {
+          "mean": 300.0128205128205,
+          "median": 299.995,
+          "p95": 300.28,
+          "minimum": 299.73,
+          "maximum": 300.28
+        },
+        "clocks.sm": {
+          "mean": 2705.1666666666665,
+          "median": 2700.0,
+          "p95": 2722.0,
+          "minimum": 2692.0,
+          "maximum": 2722.0
+        },
+        "clocks.mem": {
+          "mean": 14001.0,
+          "median": 14001.0,
+          "p95": 14001.0,
+          "minimum": 14001.0,
+          "maximum": 14001.0
+        },
+        "temperature.gpu": {
+          "mean": 61.256410256410255,
+          "median": 61.0,
+          "p95": 62.0,
+          "minimum": 60.0,
+          "maximum": 62.0
+        },
+        "memory.used": {
+          "mean": 3480.0,
+          "median": 3480.0,
+          "p95": 3480.0,
+          "minimum": 3480.0,
+          "maximum": 3480.0
+        },
+        "pstate": [
+          "P0"
+        ],
+        "clocks_event_reasons.sw_power_cap": [
+          "Active"
+        ],
+        "clocks_event_reasons.hw_thermal_slowdown": [
+          "Not Active"
+        ]
+      },
+      "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+      "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=2 threads=8 load_ms=877.71 infer_ms=48.932 images_per_second=40.87"
+    },
+    "operators": {
+      "batch": 2,
+      "iterations": 30,
+      "wall_ms": {
+        "mean": 50.75687823333333,
+        "median": 50.771196,
+        "p95": 50.994334,
+        "minimum": 50.384662,
+        "maximum": 51.008381
+      },
+      "process_cpu_ms": {
+        "mean": 3.4539666666666666,
+        "median": 3.425,
+        "p95": 3.794,
+        "minimum": 3.199,
+        "maximum": 4.02
+      },
+      "telemetry_samples": 0,
+      "telemetry": {
+        "utilization.gpu": null,
+        "utilization.memory": null,
+        "power.draw": null,
+        "clocks.sm": null,
+        "clocks.mem": null,
+        "temperature.gpu": null,
+        "memory.used": null,
+        "pstate": null,
+        "clocks_event_reasons.sw_power_cap": null,
+        "clocks_event_reasons.hw_thermal_slowdown": null
+      },
+      "heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+      "stdout": "device=Vulkan0: NVIDIA GeForce RTX 5070 Ti batch=2 threads=8 load_ms=852.74 infer_ms=50.763 images_per_second=39.40",
+      "gpu": {
+        "graph_ms": {
+          "mean": 49.41820333333333,
+          "median": 49.464749999999995,
+          "p95": 49.519,
+          "minimum": 49.052,
+          "maximum": 49.5264
+        },
+        "samples": 30,
+        "operations": {
+          "ADD": {
+            "count": 292,
+            "total_ms": {
+              "mean": 2.7955516666666664,
+              "median": 2.796705,
+              "p95": 2.8155799999999997,
+              "minimum": 2.75917,
+              "maximum": 2.8192
+            },
+            "gflops": null
+          },
+          "CONCAT": {
+            "count": 66,
+            "total_ms": {
+              "mean": 0.4012426666666667,
+              "median": 0.40145600000000004,
+              "p95": 0.402528,
+              "minimum": 0.399488,
+              "maximum": 0.40256000000000003
+            },
+            "gflops": null
+          },
+          "CONT": {
+            "count": 229,
+            "total_ms": {
+              "mean": 1.0211637333333334,
+              "median": 1.02107,
+              "p95": 1.0433599999999998,
+              "minimum": 0.9854080000000001,
+              "maximum": 1.04339
+            },
+            "gflops": null
+          },
+          "CONV_TRANSPOSE_2D M=Cout=256, K=Cin*KW*KH=20480, N=N*OW*OH=1768": {
+            "count": 1,
+            "total_ms": {
+              "mean": 1.3332843333333333,
+              "median": 1.33325,
+              "p95": 1.33632,
+              "minimum": 1.32915,
+              "maximum": 1.33738
+            },
+            "gflops": {
+              "mean": 13904.343333333334,
+              "median": 13904.7,
+              "p95": 13936.8,
+              "minimum": 13861.7,
+              "maximum": 13947.5
+            }
+          },
+          "CONV_TRANSPOSE_2D M=Cout=256, K=Cin*KW*KH=4096, N=N*OW*OH=6600": {
+            "count": 1,
+            "total_ms": {
+              "mean": 0.8008064,
+              "median": 0.800272,
+              "p95": 0.805888,
+              "minimum": 0.794624,
+              "maximum": 0.807936
+            },
+            "gflops": {
+              "mean": 17282.24,
+              "median": 17293.5,
+              "p95": 17415.7,
+              "minimum": 17129.5,
+              "maximum": 17416.4
+            }
+          },
+          "COS": {
+            "count": 1,
+            "total_ms": {
+              "mean": 0.0020490666666666667,
+              "median": 0.002048,
+              "p95": 0.0020800000000000003,
+              "minimum": 0.002016,
+              "maximum": 0.0020800000000000003
+            },
+            "gflops": null
+          },
+          "GLU": {
+            "count": 32,
+            "total_ms": {
+              "mean": 0.5408341333333333,
+              "median": 0.54152,
+              "p95": 0.54208,
+              "minimum": 0.535104,
+              "maximum": 0.548864
+            },
+            "gflops": null
+          },
+          "IM2COL": {
+            "count": 1,
+            "total_ms": {
+              "mean": 0.0061418666666666665,
+              "median": 0.006144,
+              "p95": 0.006144,
+              "minimum": 0.006112,
+              "maximum": 0.006144
+            },
+            "gflops": null
+          },
+          "MUL": {
+            "count": 192,
+            "total_ms": {
+              "mean": 1.189746,
+              "median": 1.190125,
+              "p95": 1.19309,
+              "minimum": 1.1843800000000002,
+              "maximum": 1.1937
+            },
+            "gflops": null
+          },
+          "MUL_MAT f32 m=1280 n=384 k=768": {
+            "count": 1,
+            "total_ms": {
+              "mean": 0.09830506666666666,
+              "median": 0.098304,
+              "p95": 0.09833599999999999,
+              "minimum": 0.09827200000000001,
+              "maximum": 0.09833599999999999
+            },
+            "gflops": {
+              "mean": 7674.916666666667,
+              "median": 7675.0,
+              "p95": 7675.0,
+              "minimum": 7672.5,
+              "maximum": 7677.5
+            }
+          },
+          "MUL_MAT f32 m=1280 n=394 k=1280": {
+            "count": 32,
+            "total_ms": {
+              "mean": 2.526154,
+              "median": 2.52678,
+              "p95": 2.54189,
+              "minimum": 2.5102399999999996,
+              "maximum": 2.5431
+            },
+            "gflops": {
+              "mean": 16348.203333333333,
+              "median": 16344.0,
+              "p95": 16438.1,
+              "minimum": 16239.1,
+              "maximum": 16451.7
+            }
+          },
+          "MUL_MAT f32 m=1280 n=394 k=5120": {
+            "count": 32,
+            "total_ms": {
+              "mean": 9.67434,
+              "median": 9.68496,
+              "p95": 9.70131,
+              "minimum": 9.58333,
+              "maximum": 9.70176
+            },
+            "gflops": {
+              "mean": 17080.316666666666,
+              "median": 17061.449999999997,
+              "p95": 17187.7,
+              "minimum": 17031.9,
+              "maximum": 17242.4
+            }
+          },
+          "MUL_MAT f32 m=197 n=197 k=64 batch=40": {
+            "count": 32,
+            "total_ms": {
+              "mean": 1.891614,
+              "median": 1.89221,
+              "p95": 1.8985,
+              "minimum": 1.87888,
+              "maximum": 1.90058
+            },
+            "gflops": {
+              "mean": 3335.1576666666665,
+              "median": 3334.09,
+              "p95": 3351.18,
+              "minimum": 3319.41,
+              "maximum": 3357.74
+            }
+          },
+          "MUL_MAT f32 m=3840 n=394 k=1280": {
+            "count": 32,
+            "total_ms": {
+              "mean": 7.185697333333334,
+              "median": 7.19008,
+              "p95": 7.19984,
+              "minimum": 7.13229,
+              "maximum": 7.1998999999999995
+            },
+            "gflops": {
+              "mean": 17241.723333333335,
+              "median": 17231.15,
+              "p95": 17316.2,
+              "minimum": 17207.6,
+              "maximum": 17370.8
+            }
+          },
+          "MUL_MAT f32 m=5120 n=394 k=1280": {
+            "count": 64,
+            "total_ms": {
+              "mean": 16.79959,
+              "median": 16.814500000000002,
+              "p95": 16.829900000000002,
+              "minimum": 16.6755,
+              "maximum": 16.8341
+            },
+            "gflops": {
+              "mean": 19666.18666666667,
+              "median": 19648.65,
+              "p95": 19756.4,
+              "minimum": 19625.7,
+              "maximum": 19812.5
+            }
+          },
+          "MUL_MAT f32 m=64 n=197 k=197 batch=40": {
+            "count": 32,
+            "total_ms": {
+              "mean": 1.704496,
+              "median": 1.70451,
+              "p95": 1.7081300000000001,
+              "minimum": 1.7008299999999998,
+              "maximum": 1.7081600000000001
+            },
+            "gflops": {
+              "mean": 3720.946,
+              "median": 3720.9049999999997,
+              "p95": 3728.89,
+              "minimum": 3712.96,
+              "maximum": 3728.96
+            }
+          },
+          "MUL_MAT f32 m=77 n=6144 k=256": {
+            "count": 1,
+            "total_ms": {
+              "mean": 0.036933333333333325,
+              "median": 0.036863999999999994,
+              "p95": 0.036896,
+              "minimum": 0.036863999999999994,
+              "maximum": 0.038912
+            },
+            "gflops": {
+              "mean": 6546.135666666667,
+              "median": 6557.83,
+              "p95": 6557.83,
+              "minimum": 6212.68,
+              "maximum": 6557.83
+            }
+          },
+          "NEG": {
+            "count": 64,
+            "total_ms": {
+              "mean": 0.2617909333333333,
+              "median": 0.261984,
+              "p95": 0.26217599999999996,
+              "minimum": 0.260096,
+              "maximum": 0.26220800000000005
+            },
+            "gflops": null
+          },
+          "NORM_MUL_ADD NORM": {
+            "count": 65,
+            "total_ms": {
+              "mean": 0.4637696,
+              "median": 0.46288,
+              "p95": 0.475456,
+              "minimum": 0.448544,
+              "maximum": 0.504
+            },
+            "gflops": null
+          },
+          "RELU": {
+            "count": 2,
+            "total_ms": {
+              "mean": 0.0143264,
+              "median": 0.014336,
+              "p95": 0.014336,
+              "minimum": 0.014240000000000001,
+              "maximum": 0.014336
+            },
+            "gflops": null
+          },
+          "REPEAT": {
+            "count": 2,
+            "total_ms": {
+              "mean": 0.006446933333333333,
+              "median": 0.006112,
+              "p95": 0.008256,
+              "minimum": 0.005568,
+              "maximum": 0.008352
+            },
+            "gflops": null
+          },
+          "SCALE": {
+            "count": 64,
+            "total_ms": {
+              "mean": 0.2687072,
+              "median": 0.268144,
+              "p95": 0.27296,
+              "minimum": 0.26588799999999996,
+              "maximum": 0.273152
+            },
+            "gflops": null
+          },
+          "SIN": {
+            "count": 1,
+            "total_ms": {
+              "mean": 0.002048,
+              "median": 0.002048,
+              "p95": 0.002048,
+              "minimum": 0.002048,
+              "maximum": 0.002048
+            },
+            "gflops": null
+          },
+          "SOFT_MAX": {
+            "count": 32,
+            "total_ms": {
+              "mean": 0.39317440000000003,
+              "median": 0.393168,
+              "p95": 0.393248,
+              "minimum": 0.39308800000000005,
+              "maximum": 0.39327999999999996
+            },
+            "gflops": null
+          }
+        }
+      }
+    }
+  },
+  "input_sha256": "2c77457a659ab0c71e6e6ab0bdb50f3b7fb1ca38352a50719760250be84a5694",
+  "crop_parity": {
+    "frames": 72,
+    "batches": [
+      "2",
+      "8"
+    ],
+    "byte_identical_to": "generated/vitpose-flash-20260920/baseline-crops.json"
+  },
+  "optout_heatmaps_sha256": "c999bcd004bb2a775af0714d058995167c082df84bb989e6dcb884b715314435",
+  "devroute": {
+    "url": "https://gem-x.d.richiejp.com",
+    "http_status": 200,
+    "inherited_vitpose_overrides": [],
+    "new_sessions_use_rebuilt_native_binaries": true
+  }
+}

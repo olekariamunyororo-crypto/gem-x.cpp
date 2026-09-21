@@ -1,5 +1,7 @@
 # Projection experiments after FlashAttention — 2026-09-20
 
+Update 2026-09-21: the validated winners are now [enabled by default](VITPOSE-DEFAULTS.md). The measurements and opt-in descriptions below record the original experiments.
+
 **Result: the best QKV candidate reaches about 49.10 ms, a small improvement; CUDA remains faster at 41.20 ms. Packed gate/up is slower and is not recommended.** The strict-FP32 FlashAttention experiment did not improve latency, so this investigation returns to projection kernels. All results use the RTX 5070 Ti, at most eight CPU cores, F16 and cooperative matrices disabled, and the same pinned batch-two normalized input as the CUDA comparison. No new backend is integrated.
 
 ## QKV register microtiles

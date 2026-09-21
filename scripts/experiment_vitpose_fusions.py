@@ -20,6 +20,7 @@ def main():
     root=Path(__file__).resolve().parents[1];a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False)
     env={k:v for k,v in os.environ.items() if not k.startswith(('GGML_VK_','GEMX_VITPOSE_','GEMX_BENCHMARK_'))}
     env.update(GGML_VK_DISABLE_F16='1',GGML_VK_DISABLE_COOPMAT='1',GGML_VK_DISABLE_COOPMAT2='1',
+               GEMX_VITPOSE_NORM='0',GEMX_VITPOSE_SWIGLU='0',GEMX_VITPOSE_RECT='0',GEMX_VITPOSE_QKV_LAYOUT='0',
                GEMX_VITPOSE_FLATTEN='1',GEMX_BENCHMARK_WARMUP='10',OMP_NUM_THREADS='8',OPENBLAS_NUM_THREADS='8')
     plans=[('baseline',{}),('swiglu',{'GEMX_VITPOSE_SWIGLU':'1'}),('norm',{'GEMX_VITPOSE_NORM':'1'}),
            ('fusions',{'GEMX_VITPOSE_SWIGLU':'1','GEMX_VITPOSE_NORM':'1'})]

@@ -1,5 +1,7 @@
 # Strict-FP32 ViTPose fusion and projection experiments — 2026-09-20
 
+Update 2026-09-21: the validated winners are now [enabled by default](VITPOSE-DEFAULTS.md). The measurements and opt-in descriptions below record the original experiments.
+
 The best combination reaches **49.55 ms**, down from bracketing combined-matrix
 baselines of **52.14 and 52.54 ms**. This is about 5% faster, but **does not reach
 the 41 ms target** from the independent ORT CUDA reference with TF32 disabled.

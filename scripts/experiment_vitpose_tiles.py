@@ -135,7 +135,7 @@ def main():
         manifest.write_text(json.dumps(options,indent=2)+'\n')
     env={k:v for k,v in os.environ.items() if not k.startswith(('GGML_VK_','GEMX_TILE_','GEMX_BENCHMARK_'))}
     env.pop('LD_PRELOAD',None)
-    env.update(GGML_VK_DISABLE_F16='1',GGML_VK_DISABLE_COOPMAT='1',GGML_VK_DISABLE_COOPMAT2='1',
+    env.update(GEMX_VITPOSE_FLATTEN='0',GEMX_VITPOSE_NORM='0',GEMX_VITPOSE_SWIGLU='0',GEMX_VITPOSE_RECT='0',GEMX_VITPOSE_QKV_LAYOUT='0',GGML_VK_DISABLE_F16='1',GGML_VK_DISABLE_COOPMAT='1',GGML_VK_DISABLE_COOPMAT2='1',
                GEMX_BENCHMARK_WARMUP='10',OMP_NUM_THREADS='8',OPENBLAS_NUM_THREADS='8')
     plans=[('baseline',{})]
     plans += [(name.lower()+'-'+tile,{'GEMX_TILE_'+name:tile})

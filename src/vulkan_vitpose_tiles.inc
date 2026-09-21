@@ -37,16 +37,21 @@ vk_pipeline gemx_vitpose_split_pipeline;
     }
 }
 
-if (ctx->device->gemx_rect_pipeline && aligned && ne11==394 && ne12*ne13==1 &&
+static const bool gemx_custom_tiles_enabled=[] {
+    const char *value=getenv("GEMX_VITPOSE_TILES");
+    return !value || strcmp(value,"0")!=0;
+}();
+if (gemx_custom_tiles_enabled && ctx->device->gemx_rect_pipeline && aligned && ne11==394 && ne12*ne13==1 &&
     src0->type==GGML_TYPE_F32 && src1->type==GGML_TYPE_F32 && (ne10==1280 || ne10==5120)) {
     const char *group=getenv("GEMX_VITPOSE_RECT_GROUP");
+    if (!group) group="up";
     if (group && ((strcmp(group,"down")==0 && ne10==5120 && ne01==1280) ||
                   (strcmp(group,"up")==0 && ne10==1280 && (ne01==5120 || ne01==10240)) ||
                   (strcmp(group,"qkv")==0 && ne01==3840) ||
                   (strcmp(group,"proj")==0 && ne10==1280 && ne01==1280))) pipeline=ctx->device->gemx_rect_pipeline;
 }
 
-if (ctx->device->gemx_qkv_pipeline && aligned && ne10==1280 && ne01==3840 &&
+if (gemx_custom_tiles_enabled && ctx->device->gemx_qkv_pipeline && aligned && ne10==1280 && ne01==3840 &&
     ne11==394 && ne12*ne13==1 && src0->type==GGML_TYPE_F32 && src1->type==GGML_TYPE_F32)
     pipeline=ctx->device->gemx_qkv_pipeline;
 

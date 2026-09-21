@@ -39,17 +39,21 @@ def main():
              '--args',shlex.join([str(root/'generated/reference/vitpose-f32.gguf'),
                                  str(root/'build/vulkan/bin/libggml-vulkan.so'),'Vulkan','8','2','500']),
              '--env','GGML_VK_DISABLE_F16=1;GGML_VK_DISABLE_COOPMAT=1;GGML_VK_DISABLE_COOPMAT2=1;'
+                     'GEMX_VITPOSE_FLATTEN=0;GEMX_VITPOSE_NORM=0;GEMX_VITPOSE_SWIGLU=0;GEMX_VITPOSE_RECT=0;GEMX_VITPOSE_QKV_LAYOUT=0;'
                      'GGML_VK_DEBUG_MARKERS=1;GEMX_BENCHMARK_WARMUP=20;GEMX_VITPOSE_TILES='+('0' if a.baseline else '1')+';',
              '--output-dir',str(out),'--start-after-ms','4000','--max-duration-ms',str(a.duration_ms),
              '--architecture','Blackwell GB20x','--metric-set-id','0','--auto-export',
              '--set-gpu-clocks','unaltered','--collect-screenshot','0','--trace-timeout','60']
     if not a.no_pc_sampling:command.append('--real-time-shader-profiler')
     if a.optimized:
-        command[command.index('--env')+1]+='GEMX_VITPOSE_FLATTEN=1;GEMX_VITPOSE_NORM=1;GEMX_VITPOSE_SWIGLU=1;GEMX_VITPOSE_RECT_GROUP=up;GEMX_VITPOSE_RECT=64x64;'
+        index=command.index('--env')+1
+        for key,value in [('FLATTEN','1'),('NORM','1'),('SWIGLU','1'),('RECT','64x64')]:
+            command[index]=command[index].replace('GEMX_VITPOSE_'+key+'=0;', 'GEMX_VITPOSE_'+key+'='+value+';')
+        command[index]+='GEMX_VITPOSE_RECT_GROUP=up;'
     if a.qkv_only:command[command.index('--env')+1]+='LD_PRELOAD='+str(root/'build/vulkan/libgemx-profile-qkv.so')+';'
     if a.qkv_tile:
         index=command.index('--env')+1
-        command[index]=command[index].replace('GEMX_VITPOSE_RECT_GROUP=up;GEMX_VITPOSE_RECT=64x64;', 'GEMX_VITPOSE_RECT_GROUP=qkv;GEMX_VITPOSE_RECT='+a.qkv_tile+';')
+        command[index]=command[index].replace('GEMX_VITPOSE_RECT_GROUP=up;', 'GEMX_VITPOSE_RECT_GROUP=qkv;').replace('GEMX_VITPOSE_RECT=64x64;', 'GEMX_VITPOSE_RECT='+a.qkv_tile+';')
     if a.input:command[command.index('--env')+1]+='GEMX_BENCHMARK_INPUT='+str(a.input.resolve())+';'
     with (out/'capture.log').open('w') as log:
         result=subprocess.run(command,stdout=log,stderr=log,timeout=120)

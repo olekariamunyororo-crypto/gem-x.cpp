@@ -1,11 +1,12 @@
-// Optional projection tile sweep using the pinned full-F32 shader.
+// Validated defaults, with environment overrides for projection experiments.
 if (!device->fp16 && !device->coopmat2 && !device->coopmat_support &&
     strcmp(device->properties.deviceName.data(),"NVIDIA GeForce RTX 5070 Ti")==0) {
     const char *norm=getenv("GEMX_VITPOSE_NORM");
-    if (norm && strcmp(norm,"1")==0)
+    if (!norm || strcmp(norm,"1")==0)
         ggml_vk_create_pipeline(device,device->gemx_norm_pipeline,"gemx_norm_affine",
             sizeof(gemx_norm_spv),reinterpret_cast<const unsigned char *>(gemx_norm_spv),"main",4,8,{1,1,1},{},1);
     const char *tile=getenv("GEMX_VITPOSE_RECT");
+    if (!tile) tile="64x64";
     std::vector<uint32_t> spec;
     if(tile && strcmp(tile,"128x32")==0) spec={128,128,32,16,32,32,2,4,2,1,32};
     if(tile && strcmp(tile,"64x32")==0) spec={64,64,32,16,32,32,2,4,2,1,32};
@@ -28,6 +29,7 @@ if (!device->fp16 && !device->coopmat2 && !device->coopmat_support &&
 if (!device->fp16 && !device->coopmat2 && !device->coopmat_support &&
     strcmp(device->properties.deviceName.data(),"NVIDIA GeForce RTX 5070 Ti")==0) {
     const char *layout=getenv("GEMX_VITPOSE_QKV_LAYOUT");
+    if (!layout) layout="64x64-t128";
     std::vector<uint32_t> spec;
     if(layout && strcmp(layout,"128x64-t256")==0) spec={256,128,64,16,32,32,1,4,2,1,32};
     if(layout && strcmp(layout,"64x64-t128")==0) spec={128,64,64,16,32,32,1,4,2,1,32};

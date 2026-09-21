@@ -18,7 +18,7 @@ for mode in ['vulkan','cuda']:
  ready=out/(mode+'-sampling-ready');log=out/(mode+'-sampling-workload.log')
  if ready.exists():raise RuntimeError('output already exists')
  if mode=='vulkan':
-  env=dict(os.environ,GGML_VK_DISABLE_F16='1',GGML_VK_DISABLE_COOPMAT='1',GGML_VK_DISABLE_COOPMAT2='1',GEMX_VITPOSE_FLATTEN='1',GEMX_VITPOSE_NORM='1',GEMX_VITPOSE_SWIGLU='1',GEMX_VITPOSE_RECT_GROUP='up',GEMX_VITPOSE_RECT='64x64',GEMX_BENCHMARK_INPUT=str(out/'input.f32'),GEMX_BENCHMARK_PROFILE=str(ready),GEMX_BENCHMARK_WARMUP='20')
+  env=dict(os.environ,GGML_VK_DISABLE_F16='1',GGML_VK_DISABLE_COOPMAT='1',GGML_VK_DISABLE_COOPMAT2='1',GEMX_VITPOSE_QKV_LAYOUT='0',GEMX_VITPOSE_FLATTEN='1',GEMX_VITPOSE_NORM='1',GEMX_VITPOSE_SWIGLU='1',GEMX_VITPOSE_RECT_GROUP='up',GEMX_VITPOSE_RECT='64x64',GEMX_BENCHMARK_INPUT=str(out/'input.f32'),GEMX_BENCHMARK_PROFILE=str(ready),GEMX_BENCHMARK_WARMUP='20')
   cmd=[str(root/'build/vulkan/gemx-vitpose-benchmark'),str(root/'generated/reference/vitpose-f32.gguf'),str(root/'build/vulkan/bin/libggml-vulkan.so'),'Vulkan','8','2','600']
  else:
   env=os.environ.copy();cmd=json.loads((out/'latency-command.json').read_text());cmd[cmd.index('--iterations')+1]='750';cmd[cmd.index('--output')+1]=mountout+'/cuda-sampling-workload.json';cmd[cmd.index('--save-output')+1]=mountout+'/cuda-sampling-output.f32';cmd[2:2]=['--name','gemx-sampler-'+str(os.getpid())];cmd+=['--ready-file',mountout+'/'+ready.name]

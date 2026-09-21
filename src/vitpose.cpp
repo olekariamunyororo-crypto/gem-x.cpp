@@ -18,11 +18,11 @@ constexpr int64_t joints=77,heat_width=48,heat_height=64;
 
 ggml_tensor *linear(ggml_context *ctx,const model &weights,const std::string &prefix,
                     ggml_tensor *input){
-    // Experimental batching: preserve token/crop ordering while presenting all
+    // Preserve token/crop ordering while presenting all
     // rows to one GEMM. Reshapes are views and do not copy the activations.
     static const bool flatten=[] {
         const char *value=std::getenv("GEMX_VITPOSE_FLATTEN");
-        return value && std::strcmp(value,"1")==0;
+        return !value || std::strcmp(value,"1")==0;
     }();
     auto *matrix=input;
     if(flatten && input->ne[2]==2 && input->ne[3]==1 && ggml_is_contiguous(input))
@@ -218,7 +218,7 @@ vitpose::graph_state &vitpose::graph(uint32_t batch){
             auto *w1=linear(ctx,*model_,p+".mlp.w1",normalized);
             auto *w2=linear(ctx,*model_,p+".mlp.w2",normalized);
             const char *fused_glu=std::getenv("GEMX_VITPOSE_SWIGLU");
-            mlp=fused_glu && std::strcmp(fused_glu,"1")==0 ?
+            mlp=(!fused_glu || std::strcmp(fused_glu,"1")==0) ?
                 ggml_swiglu_split(ctx,w1,w2) : ggml_mul(ctx,ggml_silu(ctx,w1),w2);
         }
         mlp=linear(ctx,*model_,p+".mlp.w3",mlp);
