@@ -3,21 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>GEM-X motion capture</title>
+  <title>GEM-X · LocalAI</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <main>
-    <header>
-      <div><span class="eyebrow">GEM-X · MOTION CAPTURE</span><h1>See your movement as a live skeleton.</h1></div>
-      <p>Use a live webcam for immediate pose updates, or process a complete video for motion playback and export.</p>
-    </header>
-
-    <section class="workspace">
-      <div class="source panel">
-        <div class="panel-head"><h2>Camera and motion preview</h2></div>
+  <aside>
+    <header><span class="eyebrow">VIDEO → HUMAN MOTION</span><h1>GEM-X</h1><p>Capture live movement or build motion from a video.</p></header>
+    <section><h2>Capture</h2>
         <div class="settings mode-controls"><label>Input mode <select id="mode"><option value="live">Live webcam</option><option value="offline">Offline video</option></select></label><label id="camera-choice">Camera <select id="camera-device"><option value="">Default camera</option></select></label></div>
-        <div class="stage"><video id="video" playsinline controls muted></video><canvas id="skeleton" width="1280" height="720" aria-label="Motion preview" hidden></canvas><div id="empty">Choose a video or open the camera</div></div>
         <div class="controls">
           <label id="file-label" class="button primary" hidden>Choose video<input id="file" type="file" accept="video/*" hidden></label>
           <button id="camera">Open webcam</button>
@@ -28,26 +21,26 @@
         <label id="detect-setting">Detect person every <input id="detect-interval" type="number" min="1" max="30" step="1" value="5"> frames</label>
         <p id="capture-hint" class="hint">Keep the camera still and your whole body in view. Between detections, stay in the same area while moving your limbs. Set 1 to detect every frame.</p>
         <p id="camera-notice" class="hint" hidden>Webcams require HTTPS or localhost and camera permission. On a remote HTTP address, use offline video or open this demo over HTTPS.</p>
-        <div id="legend" class="legend" hidden><span class="predicted">Projected 3D skeleton</span><span class="observed">ViTPose observation</span></div>
         <div class="settings">
           <label>View <select id="view"><option value="overlay">Camera overlay</option><option value="global">3D skeleton</option></select></label>
           <label><span id="rate-label">Rate cap</span> <input id="fps" type="number" min="1" max="30" step="1" value="20"><b>fps</b></label>
           <button id="process" class="button primary" hidden disabled>Build motion</button>
           <a id="download" class="button disabled" hidden href="#">Download animated GLB</a>
         </div>
-        <div id="playback-controls" class="controls" hidden><button id="playback">Pause playback</button><label>Seek <input id="playhead" type="range" min="0" max="1" step="0.01" value="0"></label></div>
         <div class="progress"><div id="bar"></div></div>
         <p id="status" role="status" aria-live="polite">Open your camera or press Start live.</p>
         <p id="live-metrics" class="hint" hidden></p>
-      </div>
     </section>
-
-    <section class="method">
-      <div><strong>Live camera</strong><span>A rolling 30-frame window updates the newest pose. Frames are captured as inference becomes available.</span></div>
-      <div><strong>Upstream live path</strong><span>Person detection and ViTPose drive GEM-X. Live mode does not run SAM3D Body.</span></div>
-      <div><strong>Offline export</strong><span>Process an uploaded video or recorded clip with full-sequence context and Body features, then export an animated GLB.</span></div>
+    <section class="about"><h2>Motion estimation</h2><p>Keep your whole body in view. Live capture uses a rolling 30-frame context; offline video uses the complete clip.</p><p>Skeleton export is available for offline video.</p></section>
+    <footer>Based on <a href="https://github.com/NVlabs/GEM-X">NVIDIA GEM-X</a> and <a href="https://github.com/facebookresearch/sam-3d-body">Meta SAM 3D Body</a>.</footer>
+  </aside>
+  <main>
+    <a class="brand" href="https://localai.io" aria-label="LocalAI"><img src="/localai.png" alt="LocalAI" width="145" height="40"></a>
+    <section class="pane"><div class="pane-title">CAMERA &amp; MOTION <span>Webcam preview when idle · synchronized skeleton during inference</span></div>
+        <div class="stage"><video id="video" playsinline controls muted></video><canvas id="skeleton" width="1280" height="720" aria-label="Motion preview" hidden></canvas><div id="empty">Choose a video or open the camera</div></div>
+        <div id="legend" class="legend" hidden><span class="predicted">Projected 3D skeleton</span><span class="observed">ViTPose observation</span></div>
+        <div id="playback-controls" class="controls" hidden><button id="playback">Pause playback</button><label>Seek <input id="playhead" type="range" min="0" max="1" step="0.01" value="0"></label></div>
     </section>
-    <footer>Implementation credits: NVIDIA Research’s <a href="https://github.com/NVlabs/GEM-X">GEM-X</a> and Meta’s <a href="https://github.com/facebookresearch/sam-3d-body">SAM 3D Body</a>.</footer>
   </main>
   <script type="module" src="/app.js"></script>
 </body>

@@ -17,7 +17,7 @@ function updatePreview(){
   view.disabled=!showPose;legend.hidden=!showPose||view.value!=='overlay';
   $('playback-controls').hidden=mode.value!=='offline'||!playing;
 }
-function clearPreview(){latestPose=null;viewYaw=null;legend.hidden=true;ctx.fillStyle='#080908';ctx.fillRect(0,0,canvas.width,canvas.height);updatePreview()}
+function clearPreview(){latestPose=null;viewYaw=null;legend.hidden=true;ctx.fillStyle='#0b1020';ctx.fillRect(0,0,canvas.width,canvas.height);updatePreview()}
 function cameraControls(){
   const live=mode.value==='live';
   $('detect-setting').hidden=!live;$('detect-interval').disabled=liveRunning||liveStopping;
@@ -158,13 +158,13 @@ function parsePose(buffer){
 }
 function bones(points,parents,color,width,visible=()=>true){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();for(let i=0;i<77;i++){const parent=parents[i];if(parent<0||parent>=77||!points[i]||!points[parent]||!visible(i)||!visible(parent))continue;ctx.moveTo(...points[i]);ctx.lineTo(...points[parent])}ctx.stroke()}
 function joints(points,color,radius,visible=()=>true){ctx.fillStyle=color;for(let i=0;i<points.length;i++){if(!points[i]||!visible(i))continue;ctx.beginPath();ctx.arc(...points[i],radius,0,Math.PI*2);ctx.fill()}}
-function drawGlobal(pose){const {positions,parents}=pose,W=canvas.width,H=canvas.height;if(viewYaw===null){const dx=positions[1][0]-positions[2][0]+positions[16][0]-positions[17][0],dz=positions[1][2]-positions[2][2]+positions[16][2]-positions[17][2];viewYaw=Math.atan2(dz,dx)+Math.PI/4}const projected=positions.map(p=>[Math.cos(viewYaw)*p[0]+Math.sin(viewYaw)*p[2],p[1]]);ctx.fillStyle='#080908';ctx.fillRect(0,0,W,H);let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;for(const p of projected){minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minY=Math.min(minY,p[1]);maxY=Math.max(maxY,p[1])}const scale=.78*Math.min(W/Math.max(.2,maxX-minX),H/Math.max(.2,maxY-minY)),cx=(minX+maxX)/2,cy=(minY+maxY)/2,points=projected.map(p=>[W/2+(p[0]-cx)*scale,H/2+(p[1]-cy)*scale]);bones(points,parents,'#c6ff3d',3);joints(points,'#ece9e2',3.3)}
+function drawGlobal(pose){const {positions,parents}=pose,W=canvas.width,H=canvas.height;if(viewYaw===null){const dx=positions[1][0]-positions[2][0]+positions[16][0]-positions[17][0],dz=positions[1][2]-positions[2][2]+positions[16][2]-positions[17][2];viewYaw=Math.atan2(dz,dx)+Math.PI/4}const projected=positions.map(p=>[Math.cos(viewYaw)*p[0]+Math.sin(viewYaw)*p[2],p[1]]);ctx.fillStyle='#0b1020';ctx.fillRect(0,0,W,H);let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;for(const p of projected){minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minY=Math.min(minY,p[1]);maxY=Math.max(maxY,p[1])}const scale=.78*Math.min(W/Math.max(.2,maxX-minX),H/Math.max(.2,maxY-minY)),cx=(minX+maxX)/2,cy=(minY+maxY)/2,points=projected.map(p=>[W/2+(p[0]-cx)*scale,H/2+(p[1]-cy)*scale]);bones(points,parents,'#5dd9f3',3);joints(points,'#ece9e2',3.3)}
 function drawOverlay(pose){
   if(!pose.cameraPositions){drawGlobal(pose);return}
   const W=canvas.width,H=canvas.height,iw=job.width,ih=job.height,scale=Math.min(W/iw,H/ih),dw=iw*scale,dh=ih*scale,ox=(W-dw)/2,oy=(H-dh)/2;
-  ctx.fillStyle='#080908';ctx.fillRect(0,0,W,H);if(liveDisplayed&&liveRunning)ctx.drawImage(liveDisplayed,ox,oy,dw,dh);else if(video.readyState>=2)ctx.drawImage(video,ox,oy,dw,dh);
+  ctx.fillStyle='#0b1020';ctx.fillRect(0,0,W,H);if(liveDisplayed&&liveRunning)ctx.drawImage(liveDisplayed,ox,oy,dw,dh);else if(video.readyState>=2)ctx.drawImage(video,ox,oy,dw,dh);
   const focal=Math.max(iw,ih),map=p=>[ox+p[0]*scale,oy+p[1]*scale],predicted=pose.cameraPositions.map(p=>{const z=p[2]+pose.camera[2];return z>1e-5?map([(p[0]+pose.camera[0])/z*focal+iw/2,(p[1]+pose.camera[1])/z*focal+ih/2]):null}),observed=pose.keypoints.map(map),confident=i=>pose.keypoints[i][2]>.5;
-  ctx.save();ctx.shadowColor='#080908';ctx.shadowBlur=3;bones(predicted,pose.parents,'#c6ff3d',Math.max(2,scale*2.5));joints(predicted,'#c6ff3d',Math.max(2.5,scale*3));bones(observed,pose.parents,'#ff795c',Math.max(1.2,scale*1.6),confident);joints(observed,'#ff795c',Math.max(2,scale*2.4),confident);ctx.restore();
+  ctx.save();ctx.shadowColor='#0b1020';ctx.shadowBlur=3;bones(predicted,pose.parents,'#5dd9f3',Math.max(2,scale*2.5));joints(predicted,'#5dd9f3',Math.max(2.5,scale*3));bones(observed,pose.parents,'#ffac5b',Math.max(1.2,scale*1.6),confident);joints(observed,'#ffac5b',Math.max(2,scale*2.4),confident);ctx.restore();
 }
 function draw(pose){latestPose=pose;updatePreview();if(view.value==='overlay')drawOverlay(pose);else drawGlobal(pose)}
 view.onchange=()=>{legend.hidden=view.value!=='overlay'||!latestPose;if(latestPose)draw(latestPose)};

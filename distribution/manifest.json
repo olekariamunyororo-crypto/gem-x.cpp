@@ -1,0 +1,14 @@
+{
+  "gem-x-contact-f32.gguf": {
+    "bytes": 177334400,
+    "sha256": "175857b8453b65d028f3703d813c3186b31b66ea65fbdb94e64308c39e083f78"
+  },
+  "vitpose-f32.gguf": {
+    "bytes": 3387861248,
+    "sha256": "272c75d4c3a6a740f1eb3f3222832de206150fa035c134af17e66ca9f8386d11"
+  },
+  "yolox-f32.gguf": {
+    "bytes": 396106720,
+    "sha256": "2be3d28e0dd8a171f4ad980b3dfbddaa1ecb88e478c612bc11379913908e7b78"
+  }
+}

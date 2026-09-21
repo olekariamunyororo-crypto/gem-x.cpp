@@ -40,6 +40,8 @@ def main():
     p.add_argument('--detect-interval',type=int,default=1)
     p.add_argument('--save-poses',action='store_true',help='Keep outputs for quality comparisons')
     p.add_argument('--compare', type=Path, help='Previous report whose per-frame pose hashes must match exactly')
+    p.add_argument('--device',type=int,default=0)
+    p.add_argument('--device-name',default='',help='Optional exact device description; otherwise select by index')
     a = p.parse_args()
     if len(os.sched_getaffinity(0))>8:p.error('restrict CPU affinity to at most eight cores')
     if not 1<=a.detect_interval<=30:p.error('detection interval must be 1..30')
@@ -61,7 +63,7 @@ def main():
     cmd = [str((a.binary or a.root/'build/vulkan/gemx-pipeline').resolve()), '--live-worker']
     cmd += [str(a.root/'generated/reference'/name) for name in
             ('gem-x-contact-f32.gguf','vitpose-f32.gguf','yolox-f32.gguf')]
-    cmd += [str((a.module or a.root/'build/vulkan/bin/libggml-vulkan.so').resolve()),'Vulkan','0','NVIDIA GeForce RTX 5070 Ti','8','30',str(a.output)]
+    cmd += [str((a.module or a.root/'build/vulkan/bin/libggml-vulkan.so').resolve()),'Vulkan',str(a.device),a.device_name or '-','8','30',str(a.output)]
     cmd += [str(a.detect_interval)]
     started = time.monotonic()
     hashes = []

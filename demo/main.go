@@ -285,7 +285,7 @@ func load(c config) (*app, error) {
 		}
 		// Body assets are only needed when an offline job actually runs.
 		bodyAsset := name == "body-runner" || name == "body-module" || name == "backbone" || name == "branch" || name == "mhr"
-		if info, err := os.Stat(absolute); !bodyAsset && (err != nil || info.IsDir()) {
+		if info, err := os.Stat(absolute); !bodyAsset && (err != nil || (info.IsDir() && name != "module")) {
 			return nil, fmt.Errorf("%s file is unavailable: %s", name, absolute)
 		}
 		switch name {
@@ -339,7 +339,7 @@ func load(c config) (*app, error) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(8)
+	runtime.GOMAXPROCS(min(runtime.GOMAXPROCS(0), 8))
 	var c config
 	flag.StringVar(&c.addr, "listen", "127.0.0.1:8098", "HTTP listen address")
 	flag.StringVar(&c.data, "data", "generated/demo", "job directory")
@@ -354,7 +354,7 @@ func main() {
 	flag.StringVar(&c.branch, "branch", "../sam3d.cpp/generated/models/sam-3d-body-dinov3/body-pose-branch-f32.gguf", "SAM3D Body pose branch")
 	flag.StringVar(&c.mhr, "mhr", "../sam3d.cpp/generated/models/mhr-public/mhr-lod1-f32.gguf", "SAM3D Body MHR model")
 	flag.StringVar(&c.backend, "backend", "Vulkan", "CPU or Vulkan")
-	flag.StringVar(&c.deviceName, "device-name", "NVIDIA GeForce RTX 5070 Ti", "exact GGML device name, or -")
+	flag.StringVar(&c.deviceName, "device-name", "-", "exact GGML device name, or -")
 	flag.IntVar(&c.device, "device", 0, "backend device")
 	flag.IntVar(&c.threads, "threads", 8, "CPU threads, maximum 8")
 	flag.IntVar(&c.maxJobs, "max-jobs", 20, "maximum retained jobs")

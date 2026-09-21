@@ -2,7 +2,7 @@
 """Real browser camera -> HTTP -> native live inference smoke test.
 
 Uses Chromium's simulated webcam with a local Y4M video. The inference service
-must already be running. Requires the sibling sam3d.cpp DevTools test helper.
+must already be running. Uses the bundled DevTools helper.
 """
 import argparse
 import json
@@ -14,7 +14,6 @@ import tempfile
 import time
 import urllib.request
 
-sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'sam3d.cpp/scripts'))
 from devtools import CDP
 
 def main():
@@ -27,6 +26,9 @@ def main():
     p.add_argument('--poses',type=int,default=72)
     p.add_argument('--serial',action='store_true',help='Check the saved serial baseline binary')
     p.add_argument('--nsys',type=Path,help='Sample GPU counters while the browser runs; directory containing target-linux-x64/nsys')
+    p.add_argument('--image',default='gemx-reference:e2e',help='Reference/profiler container image')
+    p.add_argument('--gpu-metrics-set',default='gb20x-top',help='Nsight metric set for the selected GPU architecture')
+    p.add_argument('--gpu-metrics-device',default='0')
     a=p.parse_args()
     if len(os.sched_getaffinity(0))>8:p.error('restrict CPU affinity to eight cores')
     a.output.mkdir(parents=True,exist_ok=True)
@@ -57,7 +59,7 @@ def main():
                 c.wait('window.qa.poses>=32',timeout=120)
                 root=Path(__file__).resolve().parents[1]
                 mountout='/work/'+str(a.output.resolve().relative_to(root))
-                command=['docker','run','--rm','--network','none','--cpuset-cpus','0-7','--cap-add','SYS_ADMIN','--device','nvidia.com/gpu=all','-v',str(a.nsys.resolve())+':/nsys:ro','-v',str(root)+':/work','--entrypoint','/nsys/target-linux-x64/nsys','gemx-reference:e2e','profile','--trace=none','--sample=none','--cpuctxsw=none','--gpu-metrics-devices=0','--gpu-metrics-set=gb20x-top','--gpu-metrics-frequency=10000','--duration=8','--export=sqlite','--output',mountout+'/gpu','sleep','8']
+                command=['docker','run','--rm','--network','none','--cpuset-cpus','0-7','--cap-add','SYS_ADMIN','--device','nvidia.com/gpu=all','-v',str(a.nsys.resolve())+':/nsys:ro','-v',str(root)+':/work','--entrypoint','/nsys/target-linux-x64/nsys',a.image,'profile','--trace=none','--sample=none','--cpuctxsw=none','--gpu-metrics-devices='+a.gpu_metrics_device,'--gpu-metrics-set='+a.gpu_metrics_set,'--gpu-metrics-frequency=10000','--duration=8','--export=sqlite','--output',mountout+'/gpu','sleep','8']
                 (a.output/'sampling-command.json').write_text(json.dumps(command,indent=2)+'\n')
                 with (a.output/'sampling.log').open('w') as samplelog:
                     subprocess.run(command,stdout=samplelog,stderr=subprocess.STDOUT,check=True,timeout=60)

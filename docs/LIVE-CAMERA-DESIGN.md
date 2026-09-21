@@ -45,8 +45,9 @@ implementation. Offline still uses whole-clip dominant tracking and smoothing.
 The demo now exposes Live webcam/Offline video modes, camera selection,
 start/stop controls, actual rate/frame-age feedback and synchronized overlays.
 Its resident `--live-worker` buffers only observations; the browser captures
-one frame at a time when inference is available. HTTP frame requests are
-serialized without queuing. Stop, hidden tabs, idle expiry and disconnects
+into two bounded buffers, preparing the next frame near inference completion. HTTP frame requests are
+processed in order, with one following frame prepared/uploaded concurrently.
+See [the current pipeline](LIVE-PIPELINING.md) for bounded scheduling and measurements. Stop, hidden tabs, idle expiry and disconnects
 release the worker; restarting clears context. Frames/results are temporary.
 See [demo instructions](../demo/README.md) for usage and lifecycle limits.
 The SONIC publisher described below remains integration work.

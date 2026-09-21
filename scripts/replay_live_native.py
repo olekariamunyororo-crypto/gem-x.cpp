@@ -45,6 +45,8 @@ def main():
         p.add_argument("--" + name, type=Path, required=True)
     p.add_argument("--window", type=int, default=30, choices=range(2, 121))
     p.add_argument("--observations", type=Path, help="Controlled diagnostic: replace native boxes/keypoints with upstream NPZ")
+    p.add_argument('--device',type=int,default=0)
+    p.add_argument('--device-name',default='',help='Optional exact device description; otherwise select by index')
     args = p.parse_args()
     lib = c.CDLL(str(args.library.resolve()))
     error = c.create_string_buffer(1024)
@@ -60,7 +62,7 @@ def main():
     handles = []
     def model(path, create, destroy):
         cfg = Config(str(path.resolve()).encode(), str(args.module.resolve()).encode(),
-                     b"Vulkan", b"NVIDIA GeForce RTX 5070 Ti", 0, 8, 32)
+                     b"Vulkan", args.device_name.encode(), args.device, 8, 32)
         h = c.c_void_p()
         api(create, c.byref(cfg), c.byref(h))
         handles.append((destroy, h))

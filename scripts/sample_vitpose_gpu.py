@@ -9,6 +9,9 @@ root=pathlib.Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',type=pathlib.Path,required=True)
 p.add_argument('--nsys',type=pathlib.Path,required=True,help='Directory containing target-linux-x64/nsys')
+p.add_argument('--image',default='gemx-reference:e2e',help='Reference/profiler container image')
+p.add_argument('--gpu-metrics-set',default='gb20x-top',help='Nsight metric set for the selected GPU architecture')
+p.add_argument('--gpu-metrics-device',default='0')
 a=p.parse_args()
 if len(os.sched_getaffinity(0))>8:p.error('restrict affinity to eight cores')
 out=a.output.resolve()
@@ -30,7 +33,7 @@ for mode in ['vulkan','cuda']:
     if work.poll() is not None or time.monotonic()>deadline:raise RuntimeError('workload did not reach warm-up')
     time.sleep(.1)
    time.sleep(2)
-   prof=['docker','run','--rm','--network','none','--cpuset-cpus','0-7','--cap-add','SYS_ADMIN','--device','nvidia.com/gpu=all','-v',str(a.nsys.resolve())+':/nsys:ro','-v',str(root)+':/work','--entrypoint','/nsys/target-linux-x64/nsys','gemx-reference:e2e','profile','--trace=none','--sample=none','--cpuctxsw=none','--gpu-metrics-devices=0','--gpu-metrics-set=gb20x-top','--gpu-metrics-frequency=10000','--duration=8','--export=sqlite','--output',mountout+'/'+mode+'-sampling','sleep','8']
+   prof=['docker','run','--rm','--network','none','--cpuset-cpus','0-7','--cap-add','SYS_ADMIN','--device','nvidia.com/gpu=all','-v',str(a.nsys.resolve())+':/nsys:ro','-v',str(root)+':/work','--entrypoint','/nsys/target-linux-x64/nsys',a.image,'profile','--trace=none','--sample=none','--cpuctxsw=none','--gpu-metrics-devices='+a.gpu_metrics_device,'--gpu-metrics-set='+a.gpu_metrics_set,'--gpu-metrics-frequency=10000','--duration=8','--export=sqlite','--output',mountout+'/'+mode+'-sampling','sleep','8']
    (out/(mode+'-sampling-command.json')).write_text(json.dumps(prof,indent=2))
    with (out/(mode+'-sampling.log')).open('w') as g:subprocess.run(prof,stdout=g,stderr=subprocess.STDOUT,check=True,timeout=60)
    if work.wait(timeout=60)!=0:raise RuntimeError('workload failed; inspect '+str(log))

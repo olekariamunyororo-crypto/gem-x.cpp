@@ -39,28 +39,38 @@ See [the current parity report](docs/LIVE-OFFLINE-PARITY.md) for measurements,
 reproduction and limitations. The demo now connects live camera capture to that native path.
 SONIC publishing remains to be integrated.
 
-## Demo
+## Build on Linux
 
-Build and run from the repository root:
-
-```sh
-cd demo
-taskset -c 0-7 env GOMAXPROCS=8 CGO_ENABLED=0 go build -p 8 -o gemx-demo .
-cd ..
-taskset -c 0-7 ./demo/gemx-demo
-```
-
-See `demo/README.md` for path options and the processing stages. The server
-rejects more than eight inference threads and the documented build commands
-use at most eight compilation jobs.
-
-## Build
+Install Git, a C++23 compiler (GCC 13+ or Clang 17+), CMake 3.24+ and Ninja.
+From a new checkout:
 
 ```sh
-cmake --preset debug
-cmake --build --preset debug -j8
-ctest --preset debug
+git submodule update --init --recursive
+cmake --preset release
+cmake --build --preset release -j8
+ctest --preset release
 ```
+
+These commands require no weights, Python, sibling repositories, Nix, or network
+access after fetching the pinned GGML submodule. The checked-in fixtures support
+the model-free contract tests. Model-backed parity tests are separate.
+Use `debug` instead of `release` for ASan/UBSan. Clang installations may require
+a separate compiler-rt package for sanitizers.
+
+For Vulkan, install the Vulkan loader/development headers, `glslc` and SPIR-V
+headers (for example `libvulkan-dev glslc spirv-headers` on Debian/Ubuntu), then:
+
+```sh
+cmake --preset vulkan
+cmake --build --preset vulkan -j8
+ctest --preset vulkan
+```
+
+Select nonstandard SDK/toolchain locations with normal CMake variables such as
+`CMAKE_PREFIX_PATH`, `CMAKE_CXX_COMPILER` and `Vulkan_GLSLC_EXECUTABLE`.
+The [development guide](docs/DEVELOPMENT.md) covers installation, fuzzing,
+independent builds and optional reference dependencies. Linux is the tested
+platform; other operating systems are not claimed as validated.
 
 The build sets `GGML_CPU_ALL_VARIANTS=ON` and `GGML_NATIVE=OFF`. It emits
 portable CPU variants, including AVX2 and AVX-512 variants where supported by
@@ -91,27 +101,44 @@ python scripts/convert_yolox_onnx_to_gguf.py \
   generated/reference/yolox-f32.gguf --gguf-py /path/to/gguf-py
 ```
 
+## Models and demo
+
+Weights are separate from the source checkout. See the
+[GGUF conversion model card](distribution/README.md) for the required files,
+provenance, conversion commands, hashes and model-specific license terms.
+This is a custom GEM-X runtime; these GGUFs are not LLMs for llama.cpp.
+
+The optional demo needs Go 1.23+ and the native executable/backend/models:
+
+```sh
+(cd demo && GOMAXPROCS=8 CGO_ENABLED=0 go build -p 8 -o gemx-demo .)
+./demo/gemx-demo --threads 8
+```
+
+Run from the repository root. The default paths select the `vulkan` build;
+all model, backend, data and worker locations have command-line overrides.
+Device selection defaults to backend device index 0, with an optional exact
+name check. Offline Body processing additionally needs a compatible sam3d.cpp
+installation, configured explicitly through its worker/model flags.
+See the [demo guide](demo/README.md). The demo uses LocalAI branding and the
+same sidebar/preview styling as sam3d.cpp. Live capture uses a single shared
+camera/skeleton viewport and bounded preparation/upload lookahead.
+
 ## Validation and performance
 
-The checked reference fixtures cover preprocessing, denoiser lengths 1, 2, 16,
-30, and 120, decoded motion, SOMA/MHR skeletons, and ViTPose heatmaps/keypoints.
-Against the official ONNX Runtime CPU result, native CPU ViTPose has a
-`5.22e-7` maximum heatmap error and `1.79e-7` maximum keypoint-component error.
-The Vulkan fast path has a `1.263e-3` maximum heatmap error. Four of 77 peak
-locations move by more than one pixel, with a 2.04 px worst case.
-Native YOLOX differs from the official ONNX Runtime person box by at most
-0.080 px on CPU and 0.065 px on Vulkan. Warm Vulkan detection takes about 27 ms
-on an RTX 5070 Ti in the integrated demo.
+The [current parity report](docs/LIVE-OFFLINE-PARITY.md) covers strict F32,
+independent offline and live comparisons. Component fixtures extend through
+120 frames; longer sequences use consecutive windows and do not reproduce
+upstream's overlapping attention policy. No physical robot control is included.
 
-On an RTX 5070 Ti, the default Vulkan GEM denoiser evaluates a 120-frame window
-in about 3.38 ms. ViTPose with flip augmentation takes about 33.1 ms per source
-frame at batch 2; batching four source frames plus their flips reaches about
-46.5 source frames/s. These figures describe the learned components
-independently and do not include SAM 3D Body, image decode, or application
-scheduling.
-
-See `docs/IMPLEMENTATION.md` for parity thresholds, known numerical divergence,
-and the step-8 optimization record.
+On the recorded RTX 5070 Ti, strict-F32 ViTPose with flip augmentation takes
+**48.92 ms** at batch two. The simulated-camera live demo with detection every
+five processed frames reaches **15.35 fps**, including GEM and transport.
+These are different measurement scopes; neither is a guarantee for other
+hardware or cameras. See [optimization defaults](docs/VITPOSE-DEFAULTS.md) and
+[live pipelining measurements](docs/LIVE-PIPELINING.md). Earlier fast-arithmetic
+figures in dated experiment reports are historical, not the current strict
+configuration.
 
 The pinned upstream visual exemplar can be fetched with
 `python scripts/download_e2e_exemplar.py`. NVIDIA publishes an annotated input
@@ -124,3 +151,11 @@ metrics; see [the current audit](docs/LIVE-OFFLINE-PARITY.md) for the measuremen
 
 The [live profiling report](docs/LIVE-PROFILING.md) records strict-F32 stage
 timings, byte-identical optimizations and remaining performance targets.
+
+## License and provenance
+
+Original contributions are Apache-2.0; third-party material retains its own
+notices. Model weights have separate terms, including NVIDIA Open Model and
+DINOv3 terms. See [LICENSE](LICENSE), [NOTICE](NOTICE) and
+[licensing details](docs/LICENSING.md). No converted weights are checked in or
+published by this audit.

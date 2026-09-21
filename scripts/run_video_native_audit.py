@@ -13,9 +13,12 @@ p.add_argument('--frames',type=Path,required=True)
 p.add_argument('--output',type=Path,required=True)
 p.add_argument('--gem-root',type=Path,default=Path(__file__).resolve().parents[1])
 p.add_argument('--sam-root',type=Path)
+p.add_argument('--body-build',type=Path,help='SAM3D build directory containing bin/sam3d-body-infer')
 p.add_argument('--bf16',action='store_true')
 p.add_argument('--fast',action='store_true',help='Use approximate Vulkan arithmetic instead of the strict parity baseline')
 p.add_argument('--fps',type=float,default=10)
+p.add_argument('--device',type=int,default=0)
+p.add_argument('--device-name',default='',help='Optional exact device description; otherwise select by index')
 a=p.parse_args()
 allowed=sorted(os.sched_getaffinity(0))[:8]
 os.sched_setaffinity(0,allowed)
@@ -44,7 +47,7 @@ manifest(out/'images.manifest', b'GEMIMGS1', [(p,) for p in paths])
 pipeline = gem/'build/vulkan/gemx-pipeline'
 backend = gem/'build/vulkan/bin/libggml-vulkan.so'
 start=time.monotonic()
-subprocess.run([pipeline,'--detect',gem/'generated/reference/yolox-f32.gguf',backend,'Vulkan','0','NVIDIA GeForce RTX 5070 Ti','8',out/'images.manifest',out/'boxes.bin'],check=True)
+subprocess.run([pipeline,'--detect',gem/'generated/reference/yolox-f32.gguf',backend,'Vulkan',str(a.device),a.device_name or '-','8',out/'images.manifest',out/'boxes.bin'],check=True)
 boxes=struct.unpack('<'+str(len(paths)*4)+'f',(out/'boxes.bin').read_bytes()[12:])
 xys=[]
 for i,p in enumerate(paths):
@@ -61,8 +64,8 @@ for mode in ['bf16' if a.bf16 else 'f32']:
         for k in ['SAM3D_BF16_COOPMAT2','SAM3D_BF16_FLASH_ATTENTION','SAM3D_BF16_PRECISE_PREFIX','GGML_VK_FUSE_BF16_ROUND','GGML_VK_FUSE_BF16_BINARY','GGML_VK_BF16_BINARY_LINEAR','SAM3D_BATCHED_TRANSFERS','SAM3D_SIMD_SKINNING','GGML_VK_F32_NARROW_MATMUL','GGML_VK_FUSE_BF16_SILU_GATE','GGML_VK_FUSE_BF16_AFFINE','GGML_VK_FUSE_BF16_NORM_AFFINE','SAM3D_IMAGE_GATHER']:env[k]='1'
         env.update(GGML_VK_BF16_MATMUL_TILE='small',GGML_VK_F32_NARROW_TILE='tiny32')
     else:env.update(GGML_VK_DISABLE_COOPMAT='1',GGML_VK_DISABLE_COOPMAT2='1')
-    build=sam/'build/vulkan-bf16-performance/bin'
-    args=[build/'sam3d-body-infer','--worker',build/'libggml-vulkan.so','Vulkan','0','NVIDIA GeForce RTX 5070 Ti',sam/'generated/models/sam-3d-body-dinov3/body-dinov3-f32.gguf',sam/'generated/models/sam-3d-body-dinov3/body-pose-branch-f32.gguf',sam/'generated/models/mhr-public/mhr-lod1-f32.gguf','8','--gem-features']
+    build=(a.body_build or sam/'build/vulkan-bf16-performance')/'bin'
+    args=[build/'sam3d-body-infer','--worker',build/'libggml-vulkan.so','Vulkan',str(a.device),a.device_name or '-',sam/'generated/models/sam-3d-body-dinov3/body-dinov3-f32.gguf',sam/'generated/models/sam-3d-body-dinov3/body-pose-branch-f32.gguf',sam/'generated/models/mhr-public/mhr-lod1-f32.gguf','8','--gem-features']
     if mode=='bf16':args.append('--bf16')
     start=time.monotonic()
     with (target/'body.log').open('w') as log:
@@ -85,6 +88,6 @@ for mode in ['bf16' if a.bf16 else 'f32']:
     times[mode+'_body_with_load']=time.monotonic()-start
     manifest(target/'sequence.manifest',b'GEMSEQ02',[(p,body/f'{i:06d}.bin') for i,p in enumerate(paths)])
     with (target/'sequence.manifest').open('ab') as stream:stream.write(struct.pack('<'+str(len(xys))+'f',*xys))
-    subprocess.run([pipeline,'--offline',gem/'generated/reference/gem-x-contact-f32.gguf',gem/'generated/reference/vitpose-f32.gguf',backend,'Vulkan','0','NVIDIA GeForce RTX 5070 Ti','8',target/'sequence.manifest',target/'unrefined-output',str(a.fps)],check=True)
-    subprocess.run([pipeline,'--offline-contact',gem/'generated/reference/gem-x-contact-f32.gguf',gem/'generated/reference/vitpose-f32.gguf',backend,'Vulkan','0','NVIDIA GeForce RTX 5070 Ti','8',target/'sequence.manifest',target/'output',str(a.fps)],check=True)
+    subprocess.run([pipeline,'--offline',gem/'generated/reference/gem-x-contact-f32.gguf',gem/'generated/reference/vitpose-f32.gguf',backend,'Vulkan',str(a.device),a.device_name or '-','8',target/'sequence.manifest',target/'unrefined-output',str(a.fps)],check=True)
+    subprocess.run([pipeline,'--offline-contact',gem/'generated/reference/gem-x-contact-f32.gguf',gem/'generated/reference/vitpose-f32.gguf',backend,'Vulkan',str(a.device),a.device_name or '-','8',target/'sequence.manifest',target/'output',str(a.fps)],check=True)
 (out/'timings.json').write_text(json.dumps(times,indent=2)+'\n')

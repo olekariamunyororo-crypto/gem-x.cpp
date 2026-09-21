@@ -40,7 +40,7 @@ uint32_t number(const char *text){
 }
 float real(const char *text){
     char *end=nullptr;errno=0;float value=std::strtof(text,&end);
-    if(errno||end!=text+std::strlen(text)||!std::isfinite(value))throw std::invalid_argument("invalid number");
+    if(errno||end==text||end!=text+std::strlen(text)||!std::isfinite(value))throw std::invalid_argument("invalid number");
     return value;
 }
 void api(gemx_status status,const char *message){if(status!=GEMX_OK)throw std::runtime_error(message);}
@@ -50,8 +50,7 @@ struct image_data {
     std::array<float,4> box{},camera{};
     std::vector<uint8_t> rgb;
 };
-image_data load_image(const std::string &path){
-    std::ifstream in(path,std::ios::binary);if(!in)throw std::runtime_error("cannot open packed image");
+image_data parse_image(std::istream &in){
     std::array<char,8> magic{};read(in,magic.data(),magic.size());
     if(std::string(magic.data(),magic.size())!="S3DIMG01")throw std::invalid_argument("wrong packed image magic");
     image_data value;read(in,&value.width);read(in,&value.height);read(in,&value.stride);
@@ -64,14 +63,12 @@ image_data load_image(const std::string &path){
     return value;
 }
 
-std::array<float,1024> load_pose_token(const std::string &path){
-    for(unsigned attempt=0;attempt<600000;++attempt){
-        std::error_code error;
-        if(std::filesystem::file_size(path,error)>=400000&&!error)break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    std::ifstream in(path,std::ios::binary);
-    if(!in)throw std::runtime_error("body result did not become available");
+image_data load_image(const std::string &path){
+    std::ifstream in(path,std::ios::binary);if(!in)throw std::runtime_error("cannot open packed image");
+    return parse_image(in);
+}
+
+std::array<float,1024> parse_pose_token(std::istream &in){
     std::array<char,8> magic{};read(in,magic.data(),8);
     if(std::string(magic.data(),8)!="S3DOUT01")throw std::invalid_argument("wrong body result magic");
     uint32_t tensors=0;read(in,&tensors);if(tensors<1||tensors>64)throw std::invalid_argument("invalid body tensor count");
@@ -97,6 +94,17 @@ std::array<float,1024> load_pose_token(const std::string &path){
     throw std::invalid_argument("body result lacks GEM-X pose token");
 }
 
+std::array<float,1024> load_pose_token(const std::string &path){
+    for(unsigned attempt=0;attempt<600000;++attempt){
+        std::error_code error;
+        if(std::filesystem::file_size(path,error)>=400000&&!error)break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    std::ifstream in(path,std::ios::binary);
+    if(!in)throw std::runtime_error("body result did not become available");
+    return parse_pose_token(in);
+}
+
 struct pose_sample {
     std::array<float,77*3> positions{},camera_positions{},local_translations{},keypoints{};
     std::array<float,77*4> rotations{};
@@ -120,8 +128,7 @@ void save_predictions(const std::string &path,uint32_t frames,
     write(out,"GEMRAW01",8);write(out,&frames);
     write(out,motion.data(),motion.size());write(out,camera.data(),camera.size());
 }
-pose_sample load_pose(const std::string &path){
-    std::ifstream in(path,std::ios::binary);if(!in)throw std::runtime_error("cannot open GEM-X pose");
+pose_sample parse_pose(std::istream &in){
     std::array<char,8> magic{};read(in,magic.data(),8);
     const bool version_two=std::string(magic.data(),8)=="GEMPOSE2";
     if(!version_two&&std::string(magic.data(),8)!="GEMPOSE1")throw std::invalid_argument("wrong GEM-X pose magic");
@@ -133,6 +140,11 @@ pose_sample load_pose(const std::string &path){
     read(in,value.keypoints.data(),value.keypoints.size());
     if(in.peek()!=std::char_traits<char>::eof())throw std::invalid_argument("trailing GEM-X pose data");
     return value;
+}
+
+pose_sample load_pose(const std::string &path){
+    std::ifstream in(path,std::ios::binary);if(!in)throw std::runtime_error("cannot open GEM-X pose");
+    return parse_pose(in);
 }
 
 gemx_session_config config(const char *model,const char *module,const char *backend,
@@ -272,15 +284,34 @@ std::string read_string(std::istream &in){
     return value;
 }
 
-std::vector<std::string> image_manifest(const std::string &path){
-    std::ifstream in(path,std::ios::binary);if(!in)throw std::runtime_error("cannot open image manifest");
+std::vector<std::string> parse_paths(std::istream &in,const std::string &expected,uint32_t limit){
     std::array<char,8> magic{};read(in,magic.data(),8);
-    if(std::string(magic.data(),8)!="GEMIMGS1")throw std::invalid_argument("wrong image manifest magic");
-    uint32_t count=0;read(in,&count);if(!count||count>120)throw std::invalid_argument("image manifest must contain 1..120 frames");
+    if(std::string(magic.data(),8)!=expected)throw std::invalid_argument("wrong image manifest magic");
+    uint32_t count=0;read(in,&count);if(!count||count>limit)throw std::invalid_argument("image manifest must contain 1..120 frames");
     std::vector<std::string> result;result.reserve(count);
     for(uint32_t i=0;i<count;++i)result.push_back(read_string(in));
     if(in.peek()!=std::char_traits<char>::eof())throw std::invalid_argument("trailing image manifest data");
     return result;
+}
+
+std::vector<std::string> image_manifest(const std::string &path){
+    std::ifstream in(path,std::ios::binary);if(!in)throw std::runtime_error("cannot open image manifest");
+    return parse_paths(in,"GEMIMGS1",120);
+}
+struct sequence_manifest { bool explicit_boxes; uint32_t count; std::vector<std::string> images,bodies; std::vector<float> source_boxes; };
+sequence_manifest parse_sequence(std::istream &manifest){
+    std::array<char,8> magic{};read(manifest,magic.data(),8);
+    const bool explicit_boxes=std::string(magic.data(),8)=="GEMSEQ02";
+    if(!explicit_boxes && std::string(magic.data(),8)!="GEMSEQ01")throw std::invalid_argument("wrong sequence manifest magic");
+    uint32_t count=0;read(manifest,&count);
+    if(!count||count>120)throw std::invalid_argument("sequence manifest must contain 1..120 frames");
+    std::vector<std::string> images(count),bodies(count);
+    for(uint32_t i=0;i<count;++i){images[i]=read_string(manifest);bodies[i]=read_string(manifest);}
+    std::vector<float> source_boxes(uint64_t(count)*3);
+    if(explicit_boxes)read(manifest,source_boxes.data(),source_boxes.size());
+    if(manifest.peek()!=std::char_traits<char>::eof())throw std::invalid_argument("trailing sequence manifest data");
+    for(float x:source_boxes)if(!std::isfinite(x))throw std::invalid_argument("nonfinite manifest box");
+    return {explicit_boxes,count,std::move(images),std::move(bodies),std::move(source_boxes)};
 }
 
 int detect_sequence(int argc,char **argv){
@@ -333,16 +364,7 @@ int offline_sequence(int argc,char **argv){
     if(argc!=12)throw std::invalid_argument("usage: gemx-pipeline --offline DENOISER VITPOSE MODULE CPU|Vulkan DEVICE DESCRIPTION|- THREADS SEQUENCE_MANIFEST OUTPUT_DIR FPS");
     char error[512]{};
     std::ifstream manifest(argv[9],std::ios::binary);if(!manifest)throw std::runtime_error("cannot open sequence manifest");
-    std::array<char,8> magic{};read(manifest,magic.data(),8);
-    const bool explicit_boxes=std::string(magic.data(),8)=="GEMSEQ02";
-    if(!explicit_boxes && std::string(magic.data(),8)!="GEMSEQ01")throw std::invalid_argument("wrong sequence manifest magic");
-    uint32_t count=0;read(manifest,&count);
-    if(!count||count>120)throw std::invalid_argument("sequence manifest must contain 1..120 frames");
-    std::vector<std::string> images(count),bodies(count);
-    for(uint32_t i=0;i<count;++i){images[i]=read_string(manifest);bodies[i]=read_string(manifest);}
-    std::vector<float> source_boxes(uint64_t(count)*3);
-    if(explicit_boxes)read(manifest,source_boxes.data(),source_boxes.size());
-    if(manifest.peek()!=std::char_traits<char>::eof())throw std::invalid_argument("trailing sequence manifest data");
+    auto [explicit_boxes,count,images,bodies,source_boxes]=parse_sequence(manifest);
     auto den_cfg=config(argv[2],argv[4],argv[5],argv[7],number(argv[6]),number(argv[8]),2);
     gemx_session *raw_session=nullptr;api(gemx_session_create(&den_cfg,&raw_session,error,sizeof(error)),error);
     session_ptr session(raw_session,gemx_session_destroy);
@@ -524,15 +546,12 @@ int export_sequence(int argc,char **argv){
     gemx_session *raw=nullptr;api(gemx_session_create(&cfg,&raw,error,sizeof(error)),error);
     session_ptr session(raw,gemx_session_destroy);
     std::ifstream manifest(argv[9],std::ios::binary);if(!manifest)throw std::runtime_error("cannot open manifest");
-    std::array<char,8> magic{};read(manifest,magic.data(),8);
-    if(std::string(magic.data(),8)!="GEMMAN01")throw std::invalid_argument("wrong manifest magic");
-    uint32_t count=0;read(manifest,&count);if(count<1||count>GEMX_MAX_FRAMES)throw std::invalid_argument("invalid manifest count");
+    const auto paths=parse_paths(manifest,"GEMMAN01",GEMX_MAX_FRAMES);
+    const uint32_t count=paths.size();
     std::vector<float> positions(uint64_t(count)*77*3),rotations(uint64_t(count)*77*4),translations(uint64_t(count)*77*3);
     std::array<int32_t,77> parents{};
     for(uint32_t i=0;i<count;++i){
-        uint32_t size=0;read(manifest,&size);if(!size||size>4096)throw std::invalid_argument("invalid manifest path");
-        std::string path(size,'\0');read(manifest,path.data(),size);if(path.find('\0')!=std::string::npos)throw std::invalid_argument("invalid manifest path data");
-        auto sample=load_pose(path);
+        auto sample=load_pose(paths[i]);
         std::copy(sample.positions.begin(),sample.positions.end(),positions.begin()+uint64_t(i)*77*3);
         std::copy(sample.rotations.begin(),sample.rotations.end(),rotations.begin()+uint64_t(i)*77*4);
         std::copy(sample.local_translations.begin(),sample.local_translations.end(),translations.begin()+uint64_t(i)*77*3);

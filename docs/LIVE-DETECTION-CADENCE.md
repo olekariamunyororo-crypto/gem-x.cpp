@@ -1,5 +1,8 @@
 # Configurable live detection and reference benchmarks — 2026-09-20
 
+Historical measurements and implementation notes. For current defaults and transport, see
+[VITPOSE-DEFAULTS.md](VITPOSE-DEFAULTS.md) and [LIVE-PIPELINING.md](LIVE-PIPELINING.md).
+
 The demo now lets the user choose **Detect person every N frames**, from 1 to
 30, before starting a live session. The initial UI value is 5. ViTPose and GEM
 still run on every processed frame; only YOLOX is skipped, with the last crop

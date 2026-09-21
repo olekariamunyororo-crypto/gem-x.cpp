@@ -23,6 +23,8 @@ def main():
     p.add_argument('--batches',type=int,nargs='+',default=[2,8],choices=[2,4,6,8])
     p.add_argument('--compare',type=Path)
     p.add_argument('--save-heatmaps',type=Path,help='Directory for per-batch NPY heatmaps for numerical comparison')
+    p.add_argument('--device',type=int,default=0)
+    p.add_argument('--device-name',default='',help='Optional exact device description; otherwise select by index')
     a=p.parse_args()
     if len(os.sched_getaffinity(0))>8:p.error('restrict affinity to at most eight cores')
     for key in ('GGML_VK_DISABLE_F16','GGML_VK_DISABLE_COOPMAT','GGML_VK_DISABLE_COOPMAT2'):
@@ -32,7 +34,7 @@ def main():
     assert crops.dtype==np.float32 and crops.shape[1:]==(3,256,192)
     lib=c.CDLL(str(a.library.resolve()));handle=c.c_void_p();error=c.create_string_buffer(1024)
     config=Config(str(a.model.resolve()).encode(),str(a.module.resolve()).encode(),
-                  b'Vulkan',b'NVIDIA GeForce RTX 5070 Ti',0,8,2)
+                  b'Vulkan',a.device_name.encode(),a.device,8,2)
     def api(name,*args):
         if getattr(lib,name)(*args,error,c.c_uint64(len(error))):raise RuntimeError(error.value.decode())
     api('gemx_vitpose_create',c.byref(config),c.byref(handle))

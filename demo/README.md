@@ -52,12 +52,12 @@ From the repository root:
 
 ```sh
 cd demo
-taskset -c 0-7 env GOMAXPROCS=8 CGO_ENABLED=0 go build -p 8 -o gemx-demo .
+GOMAXPROCS=8 CGO_ENABLED=0 go build -p 8 -o gemx-demo .
 cd ..
-taskset -c 0-7 ./demo/gemx-demo
+./demo/gemx-demo --threads 8
 ```
 
-All paths have local development defaults. Use the command-line flags when the
+All paths have repository-relative defaults. No GPU model name is required. Use the command-line flags when the
 GEM-X and SAM3D repositories or model files are elsewhere. `--threads` is
 validated to a maximum of eight.
 
@@ -103,3 +103,15 @@ publishing is not connected to this demo.
 Recorded results: [live demo validation](../docs/live-demo-validation-2026-09-18.json).
 
 See [live pipeline measurements](../docs/LIVE-PIPELINING.md) for throughput, GPU counters, latency tradeoffs and byte-level replay checks.
+
+For a CPU build, use `--pipeline build/release/gemx-pipeline --backend CPU
+--module build/release/bin`. The backend directory selects a compatible CPU
+variant. `--device N` selects the device; `--device-name NAME` optionally checks
+its description. `--listen` and `--data` configure deployment and storage.
+Run `./demo/gemx-demo --help` for all model and SAM3D path overrides. The
+`--body-runner`, `--body-module`, `--backbone`, `--branch` and `--mhr` options
+configure a separate SAM3D installation; live mode does not need it.
+
+The server has no authentication; use localhost or a trusted authenticated
+reverse proxy. Uploaded video is decoded by the browser; the server accepts
+size-limited JPEG/PNG frames.

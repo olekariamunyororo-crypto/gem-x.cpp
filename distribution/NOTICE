@@ -1,0 +1,9 @@
+Licensed by NVIDIA Corporation under the NVIDIA Open Model License
+
+GEM-X/SOMA model conversion for gem-x.cpp. Original model credit: NVIDIA.
+This is a format conversion and component packaging, not a fine-tune.
+The source repository's Apache-2.0 license does not relicense model weights.
+ViTPose's DINOv3 component retains Meta's DINOv3 terms. MHR identity/geometry
+components retain the MHR Apache-2.0 and applicable Momentum notices.
+YOLOX-X HumanArt was released through MMPose; preserve its upstream notices.
+This notice is prepared for a model bundle; no weights are included here.

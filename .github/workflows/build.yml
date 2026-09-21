@@ -1,0 +1,45 @@
+name: build-and-inputs
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        preset: [release, vulkan]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build libvulkan-dev glslc spirv-headers
+      - run: cmake --preset ${{ matrix.preset }} && cmake --build --preset ${{ matrix.preset }} -j8 && ctest --preset ${{ matrix.preset }}
+  fuzz:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: sudo apt-get update && sudo apt-get install -y clang libclang-rt-dev ninja-build
+      - run: cmake -S . -B build/fuzz -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DGEMX_FUZZ=ON -DGEMX_SANITIZERS=ON -DGGML_CPU_ALL_VARIANTS=OFF
+      - run: cmake --build build/fuzz -j8 && ctest --test-dir build/fuzz --output-on-failure
+      - run: python3 scripts/seed_fuzz.py build/fuzz/corpus
+      - run: build/fuzz/gemx-fuzz-inputs build/fuzz/corpus/inputs -max_total_time=20 -max_len=16384
+      - run: build/fuzz/gemx-fuzz-api build/fuzz/corpus/api -max_total_time=20 -max_len=8192
+  demo:
+    runs-on: ubuntu-24.04
+    env:
+      GOMAXPROCS: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: demo/go.mod
+          cache: false
+      - working-directory: demo
+        run: go test -race -p 8 ./... && go build -p 8 -o gemx-demo .
+      - working-directory: demo
+        run: |
+          for target in FuzzImage FuzzPackedBox FuzzCreateJSON; do
+            go test -parallel 4 -fuzz="$target" -fuzztime=15s -run='^$'
+          done

@@ -1,5 +1,8 @@
 # Native GEM-X implementation record
 
+Historical measurements and implementation notes. For current defaults and transport, see
+[VITPOSE-DEFAULTS.md](VITPOSE-DEFAULTS.md) and [LIVE-PIPELINING.md](LIVE-PIPELINING.md).
+
 The behavioral reference is NVIDIA GEM-X revision
 `32992550dba114c62243fb55e361311972dce8f9`. SOMA is pinned at
 `e0f8ff0ecfa3edbbb6058b1e0f08822ee2f84ee5`. Official asset byte counts and

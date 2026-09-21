@@ -1,5 +1,8 @@
 # Live profiling and parity-preserving optimization — 2026-09-19
 
+Historical measurements and implementation notes. For current defaults and transport, see
+[VITPOSE-DEFAULTS.md](VITPOSE-DEFAULTS.md) and [LIVE-PIPELINING.md](LIVE-PIPELINING.md).
+
 The optimized resident worker takes **122.11 ms per frame**, down from
 **125.65 ms**: a **2.82% reduction**, or 7.96 to 8.19 worker frames/s.
 Every emitted pose remains byte-identical in the measured replay. This is a
