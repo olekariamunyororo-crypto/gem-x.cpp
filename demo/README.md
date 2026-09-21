@@ -130,10 +130,18 @@ This build uses the Vulkan toolchain described in the main README. The preset
 name enables support for BF16 optimizations; the GEM-X demo still uses F32 Body
 inference by default. Its output directory is `build/vulkan-bf16-performance`.
 
-Prepare the three Body GGUFs using the submodule's
-[reference setup](../sam3d.cpp/reference/README.md) and
-[conversion guide](../sam3d.cpp/reference/GGUF.md). Model files are not fetched
-by Git. The default paths, relative to the GEM-X repository root, are:
+Download the three Body GGUFs from
+[LocalAI-io/sam-3d-body-dinov3-GGUF](https://huggingface.co/LocalAI-io/sam-3d-body-dinov3-GGUF):
+
+```sh
+hf download LocalAI-io/sam-3d-body-dinov3-GGUF body-dinov3-f32.gguf body-pose-branch-f32.gguf --local-dir sam3d.cpp/generated/models/sam-3d-body-dinov3
+hf download LocalAI-io/sam-3d-body-dinov3-GGUF mhr-lod1-f32.gguf --local-dir sam3d.cpp/generated/models/mhr-public
+```
+
+Model files are not fetched by Git. To convert them yourself instead, use the
+submodule's [reference setup](../sam3d.cpp/reference/README.md) and
+[conversion guide](../sam3d.cpp/reference/GGUF.md).
+The default paths, relative to the GEM-X repository root, are:
 
 ```text
 sam3d.cpp/generated/models/sam-3d-body-dinov3/body-dinov3-f32.gguf

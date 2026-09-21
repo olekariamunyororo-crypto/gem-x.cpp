@@ -1,5 +1,6 @@
 ---
-license: nvidia-open-model-license
+license: other
+license_name: nvidia-open-model-license
 license_link: https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/
 base_model: nvidia/GEM-X
 library_name: gguf

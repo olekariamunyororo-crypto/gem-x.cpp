@@ -34,10 +34,8 @@ upstream notices. Optional SAM 3D Body weights are separate downloads governed
 by Meta's SAM/DINOv3 terms; they are not included in the GEM-X conversion bundle.
 
 The [conversion model card](../distribution/README.md) describes these distinct
-files and dependencies. It is prepared for review, not a claim that weights
-have been published. Before distribution, include the applicable license copies
-and model notices, preserve attribution, and verify the identities of the exact
-files being shipped. NVIDIA's model agreement requires the model notice
+files and dependencies. The [GEM-X bundle](https://huggingface.co/LocalAI-io/GEM-X-GGUF) includes
+applicable license copies, model notices, attribution and verified file identities. NVIDIA's model agreement requires the model notice
 “Licensed by NVIDIA Corporation under the NVIDIA Open Model License”.
 The prepared bundle notice includes it. Conversion does not remove upstream
 usage or redistribution conditions.

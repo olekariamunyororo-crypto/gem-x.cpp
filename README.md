@@ -82,9 +82,14 @@ For CPU inference, build with the `release` preset instead and launch with:
 
 ### 2. Prepare the models
 
-Model weights are separate from the source checkout. Follow the
-[model preparation instructions](distribution/README.md) to obtain and convert
-the required models. The demo expects these files by default:
+Download the models from [LocalAI-io/GEM-X-GGUF](https://huggingface.co/LocalAI-io/GEM-X-GGUF)
+using the Hugging Face CLI (`hf`, from the `huggingface_hub` Python package):
+
+```sh
+hf download LocalAI-io/GEM-X-GGUF gem-x-contact-f32.gguf vitpose-f32.gguf yolox-f32.gguf --local-dir generated/reference
+```
+
+The demo expects these files by default:
 
 ```text
 generated/reference/gem-x-contact-f32.gguf
