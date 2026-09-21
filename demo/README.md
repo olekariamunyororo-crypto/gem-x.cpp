@@ -19,7 +19,9 @@ moving your limbs; this is crop reuse, not a motion tracker. Choose 1 for the
 upstream detection cadence or when moving around. Detection retries every frame
 after a miss and refreshes on reset, size change or a pause over two seconds.
 The live rate cap starts at 20 fps so it does not hide the reduced-detection gain.
-Stop releases the worker and camera. Hiding the tab pauses live capture; restart
+**Stop inference** releases the worker and returns the shared preview to the
+webcam. **Close camera** then releases the camera. While inference runs, this
+same viewport displays the captured frame with its skeleton, or the 3D view. Hiding the tab pauses live capture; restart
 clears temporal context. Live frames/results are temporary and are removed on
 stop or idle expiry. Offline and live inference share one GPU slot.
 

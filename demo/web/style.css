@@ -3,3 +3,6 @@
 .settings label{margin-right:0}.settings label:nth-of-type(2){margin-right:auto}.settings select{background:#0d0f0d;color:var(--ink);border:1px solid #50534c;padding:8px}.legend{display:flex;gap:18px;margin-top:9px;color:var(--muted);font-size:12px}.legend span:before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}.legend .predicted:before{background:var(--acid)}.legend .observed:before{background:var(--warm)}
 
 [hidden]{display:none!important}.mode-controls{margin:0 0 14px}.mode-controls select{max-width:240px}.stage #empty[hidden]{display:none}.hint{font-size:13px}#live-metrics{font-variant-numeric:tabular-nums}button.primary{background:var(--acid);color:#12140e;border-color:var(--acid)}
+
+/* One shared viewport; the source video continues feeding capture underneath. */
+.workspace{grid-template-columns:minmax(0,1fr);max-width:1100px;margin-inline:auto}.stage{aspect-ratio:16/9}.stage #skeleton{position:absolute;inset:0;width:100%;height:100%;border:0;aspect-ratio:auto;object-fit:contain}.stage.show-pose video{visibility:hidden}#playback-controls label{display:flex;align-items:center;gap:10px;flex:1}#playhead{width:100%}

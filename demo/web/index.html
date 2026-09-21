@@ -15,9 +15,9 @@
 
     <section class="workspace">
       <div class="source panel">
-        <div class="panel-head"><span>01</span><h2>Camera or clip</h2></div>
+        <div class="panel-head"><h2>Camera and motion preview</h2></div>
         <div class="settings mode-controls"><label>Input mode <select id="mode"><option value="live">Live webcam</option><option value="offline">Offline video</option></select></label><label id="camera-choice">Camera <select id="camera-device"><option value="">Default camera</option></select></label></div>
-        <div class="stage"><video id="video" playsinline controls muted></video><div id="empty">Choose a video or open the camera</div></div>
+        <div class="stage"><video id="video" playsinline controls muted></video><canvas id="skeleton" width="1280" height="720" aria-label="Motion preview" hidden></canvas><div id="empty">Choose a video or open the camera</div></div>
         <div class="controls">
           <label id="file-label" class="button primary" hidden>Choose video<input id="file" type="file" accept="video/*" hidden></label>
           <button id="camera">Open webcam</button>
@@ -28,11 +28,6 @@
         <label id="detect-setting">Detect person every <input id="detect-interval" type="number" min="1" max="30" step="1" value="5"> frames</label>
         <p id="capture-hint" class="hint">Keep the camera still and your whole body in view. Between detections, stay in the same area while moving your limbs. Set 1 to detect every frame.</p>
         <p id="camera-notice" class="hint" hidden>Webcams require HTTPS or localhost and camera permission. On a remote HTTP address, use offline video or open this demo over HTTPS.</p>
-      </div>
-
-      <div class="result panel">
-        <div class="panel-head"><span>02</span><h2>Skeleton preview</h2></div>
-        <canvas id="skeleton" width="960" height="720"></canvas>
         <div id="legend" class="legend" hidden><span class="predicted">Projected 3D skeleton</span><span class="observed">ViTPose observation</span></div>
         <div class="settings">
           <label>View <select id="view"><option value="overlay">Camera overlay</option><option value="global">3D skeleton</option></select></label>
@@ -40,6 +35,7 @@
           <button id="process" class="button primary" hidden disabled>Build motion</button>
           <a id="download" class="button disabled" hidden href="#">Download animated GLB</a>
         </div>
+        <div id="playback-controls" class="controls" hidden><button id="playback">Pause playback</button><label>Seek <input id="playhead" type="range" min="0" max="1" step="0.01" value="0"></label></div>
         <div class="progress"><div id="bar"></div></div>
         <p id="status" role="status" aria-live="polite">Open your camera or press Start live.</p>
         <p id="live-metrics" class="hint" hidden></p>

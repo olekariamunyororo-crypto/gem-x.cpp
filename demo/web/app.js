@@ -7,26 +7,34 @@ async function ready(){
   if(!Number.isFinite(video.duration)){video.currentTime=Number.MAX_SAFE_INTEGER;await new Promise(resolve=>video.addEventListener('seeked',resolve,{once:true}));video.currentTime=0}
   empty.hidden=true;video.classList.add('ready');processButton.disabled=false;message(`Ready · ${video.videoWidth}×${video.videoHeight} · ${Number.isFinite(video.duration)?video.duration.toFixed(1):'?'} s`,0)
 }
-function useBlob(blob){playing=false;latestPose=null;legend.hidden=true;if(sourceURL)URL.revokeObjectURL(sourceURL);sourceURL=URL.createObjectURL(blob);video.srcObject=null;video.src=sourceURL;video.load();video.onloadedmetadata=()=>ready().catch(e=>message(e.message,0))}
+function useBlob(blob){playing=false;clearPreview();if(sourceURL)URL.revokeObjectURL(sourceURL);sourceURL=URL.createObjectURL(blob);video.srcObject=null;video.src=sourceURL;video.load();video.onloadedmetadata=()=>ready().catch(e=>message(e.message,0))}
 
 const mode=$('mode'),liveStart=$('live-start'),liveStop=$('live-stop'),cameraDevice=$('camera-device');
 let liveID=null,liveEpoch=0,liveAbort=null,liveRunning=false,liveDisplayed=null,offlineBusy=false,lastLivePose=0,liveStopping=false;
-function clearPreview(){latestPose=null;viewYaw=null;legend.hidden=true;ctx.fillStyle='#080908';ctx.fillRect(0,0,canvas.width,canvas.height)}
+function updatePreview(){
+  const showPose=!!latestPose&&(liveRunning||playing);
+  canvas.hidden=!showPose;canvas.parentElement.classList.toggle('show-pose',showPose);
+  view.disabled=!showPose;legend.hidden=!showPose||view.value!=='overlay';
+  $('playback-controls').hidden=mode.value!=='offline'||!playing;
+}
+function clearPreview(){latestPose=null;viewYaw=null;legend.hidden=true;ctx.fillStyle='#080908';ctx.fillRect(0,0,canvas.width,canvas.height);updatePreview()}
 function cameraControls(){
   const live=mode.value==='live';
   $('detect-setting').hidden=!live;$('detect-interval').disabled=liveRunning||liveStopping;
   $('file-label').hidden=live;record.hidden=live;liveStart.hidden=!live;liveStop.hidden=!live;
   processButton.hidden=live;download.hidden=live;$('live-metrics').hidden=!live;
   $('rate-label').textContent=live?'Rate cap':'Sample rate';
+  liveStop.textContent=liveRunning?'Stop inference':'Close camera';
+  updatePreview();
   liveStart.disabled=liveRunning||liveStopping||offlineBusy;liveStop.disabled=!liveRunning&&!stream;
   camera.disabled=liveRunning||liveStopping||offlineBusy||!!stream;cameraDevice.disabled=liveRunning||liveStopping||offlineBusy;
   record.disabled=!stream||live;mode.disabled=offlineBusy;file.disabled=offlineBusy;
   $('capture-hint').textContent=live?'Keep the camera still and your whole body in view. Between detections, stay in the same area while moving your limbs. Set 1 to detect every frame.':'Record a clip or choose a video, then build motion using the complete sequence.';
 }
-function closeCamera(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.controls=true;cameraControls()}
-async function stopLive(note='Live stopped.'){
+function closeCamera(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.controls=true;video.classList.remove('ready');empty.hidden=false;cameraControls()}
+async function stopLive(note='Live stopped.',keepCamera=false){
   ++liveEpoch;liveStopping=true;liveRunning=false;liveAbort?.abort();liveAbort=null;
-  const id=liveID;liveID=null;closeCamera();liveDisplayed=null;clearPreview();$('live-metrics').textContent='';cameraControls();message(note,0);
+  const id=liveID;liveID=null;if(!keepCamera)closeCamera();liveDisplayed=null;clearPreview();$('live-metrics').textContent='';cameraControls();message(note,0);
   try{if(id)await fetch(`/api/live/${id}`,{method:'DELETE',keepalive:true})}catch{}finally{liveStopping=false;cameraControls()}
 }
 async function openCamera(){
@@ -48,7 +56,7 @@ file.onchange=()=>{if(file.files[0]){closeCamera();useBlob(file.files[0])}};
 camera.onclick=async()=>{camera.disabled=true;try{if(await openCamera())message(mode.value==='live'?'Camera ready. Press Start live.':'Camera ready. Record a short clip, then process it.',0)}catch(e){message(`Camera: ${e.message}`,0)}finally{cameraControls()}};
 cameraDevice.onchange=async()=>{await stopLive('Camera changed. Press Start live or open the camera.');};
 mode.onchange=async()=>{$('fps').value=mode.value==='live'?'20':'10';if(recorder?.state==='recording'){recorder.onstop=null;recorder.stop();record.textContent='Start recording'}await stopLive(mode.value==='live'?'Open your camera or press Start live.':'Choose a video or record a clip.');playing=false;job=null;video.removeAttribute('src');video.load();video.classList.remove('ready');empty.hidden=false;processButton.disabled=true;download.classList.add('disabled');cameraControls()};
-liveStop.onclick=()=>stopLive();
+liveStop.onclick=()=>liveRunning?stopLive('Inference stopped. Camera preview is active.',true):stopLive('Camera closed.');
 liveStart.onclick=async()=>{
   const epoch=++liveEpoch;liveRunning=true;playing=false;job=null;clearPreview();download.classList.add('disabled');cameraControls();
   liveAbort=new AbortController();
@@ -105,7 +113,7 @@ async function waitForJob(id){for(;;){const value=await api(`/api/jobs/${id}`);m
 
 processButton.onclick=async()=>{offlineBusy=true;cameraControls();try{
   if(!Number.isFinite(video.duration)||video.duration<=0)throw new Error('wait for the recorded video duration to become available');
-  processButton.disabled=true;download.classList.add('disabled');playing=false;viewYaw=null;latestPose=null;legend.hidden=true;
+  processButton.disabled=true;download.classList.add('disabled');playing=false;clearPreview();
   const fps=Math.max(1,Math.min(30,Number($('fps').value)||10)),frames=Math.max(1,Math.min(120,Math.floor(video.duration*fps)));
   const ratio=Math.min(1,960/Math.max(video.videoWidth,video.videoHeight)),width=Math.max(8,Math.round(video.videoWidth*ratio)),height=Math.max(8,Math.round(video.videoHeight*ratio));
   const capture=document.createElement('canvas');capture.width=width;capture.height=height;const captureContext=capture.getContext('2d',{alpha:false});
@@ -134,8 +142,12 @@ function drawOverlay(pose){
   const focal=Math.max(iw,ih),map=p=>[ox+p[0]*scale,oy+p[1]*scale],predicted=pose.cameraPositions.map(p=>{const z=p[2]+pose.camera[2];return z>1e-5?map([(p[0]+pose.camera[0])/z*focal+iw/2,(p[1]+pose.camera[1])/z*focal+ih/2]):null}),observed=pose.keypoints.map(map),confident=i=>pose.keypoints[i][2]>.5;
   ctx.save();ctx.shadowColor='#080908';ctx.shadowBlur=3;bones(predicted,pose.parents,'#c6ff3d',Math.max(2,scale*2.5));joints(predicted,'#c6ff3d',Math.max(2.5,scale*3));bones(observed,pose.parents,'#ff795c',Math.max(1.2,scale*1.6),confident);joints(observed,'#ff795c',Math.max(2,scale*2.4),confident);ctx.restore();
 }
-function draw(pose){latestPose=pose;if(view.value==='overlay')drawOverlay(pose);else drawGlobal(pose)}
+function draw(pose){latestPose=pose;updatePreview();if(view.value==='overlay')drawOverlay(pose);else drawGlobal(pose)}
 view.onchange=()=>{legend.hidden=view.value!=='overlay'||!latestPose;if(latestPose)draw(latestPose)};
-async function animate(value){const cache=new Map();let previous=-1,fallback=0,last=performance.now();while(playing&&job?.id===value.id){const now=performance.now();let index;if(video.readyState>=2&&Number.isFinite(video.currentTime))index=Math.min(value.frames-1,Math.floor(video.currentTime*value.fps));else if(now-last>=1000/value.fps){last=now;index=fallback++%value.frames}else index=previous;if(index>=0&&index!==previous){previous=index;try{let pose=cache.get(index);if(!pose){const response=await fetch(`/api/jobs/${value.id}/poses/${String(index).padStart(6,'0')}`);if(!response.ok)throw new Error('pose unavailable');pose=parsePose(await response.arrayBuffer());cache.set(index,pose)}draw(pose)}catch(e){message(e.message);playing=false}}await new Promise(requestAnimationFrame)}}
+async function animate(value){const cache=new Map();let previous=-1,fallback=0,last=performance.now();while(playing&&job?.id===value.id){const now=performance.now();let index;if(video.readyState>=2&&Number.isFinite(video.currentTime))index=Math.min(value.frames-1,Math.floor(video.currentTime*value.fps));else if(now-last>=1000/value.fps){last=now;index=fallback++%value.frames}else index=previous;if(index>=0&&index!==previous){previous=index;try{let pose=cache.get(index);if(!pose){const response=await fetch(`/api/jobs/${value.id}/poses/${String(index).padStart(6,'0')}`);if(!response.ok)throw new Error('pose unavailable');pose=parsePose(await response.arrayBuffer());cache.set(index,pose)}draw(pose)}catch(e){message(e.message);playing=false;clearPreview()}}await new Promise(requestAnimationFrame)}}
 
-ctx.fillStyle='#080908';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#747770';ctx.font='24px system-ui';ctx.textAlign='center';ctx.fillText('Skeleton preview',canvas.width/2,canvas.height/2);
+$('playback').onclick=()=>video.paused?video.play().catch(e=>message(e.message)):video.pause();
+video.addEventListener('play',()=>{$('playback').textContent='Pause playback'});
+video.addEventListener('pause',()=>{$('playback').textContent='Play'});
+video.addEventListener('timeupdate',()=>{if(Number.isFinite(video.duration)){$('playhead').max=video.duration;$('playhead').value=video.currentTime}});
+$('playhead').oninput=()=>{video.currentTime=Number($('playhead').value)};
