@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GEM-X Live</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="status_idle">Idle – enter server URL and press Start</string>
+</resources>
